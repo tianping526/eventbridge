@@ -23,3 +23,12 @@ go.work.sum
 
 # env file
 .env
+
+.idea
+.DS_Store
+
+**/*.pb.go
+**/ent/*
+!**/ent/schema
+wire_gen.go
+/bin
