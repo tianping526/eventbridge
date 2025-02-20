@@ -1,0 +1,46 @@
+version: v2
+plugins:
+  - remote: buf.build/grpc/go:v1.5.1
+    out: apis/api
+    opt:
+      - paths=source_relative
+
+  - remote: buf.build/bufbuild/validate-go:v1.1.0
+    out: apis/api
+    opt:
+      - paths=source_relative
+
+  - local: [ "go", "run", "github.com/go-kratos/kratos/cmd/protoc-gen-go-errors/v2" ]
+    out: apis/api
+    opt:
+      - paths=source_relative
+
+  - local: [ "go", "run", "github.com/go-kratos/kratos/cmd/protoc-gen-go-http/v2" ]
+    out: apis/api
+    opt:
+      - paths=source_relative
+
+  # dependencies
+  - remote: buf.build/protocolbuffers/go:v1.34.2
+    out: apis/api
+    opt:
+      - paths=source_relative
+
+
+managed:
+  enabled: true
+
+  override:
+    - file_option: go_package
+      value: github.com/tianping526/eventbridge/apis/api/eventbridge/service/v1;v1
+      path: eventbridge/service/v1
+
+    - file_option: go_package
+      value: github.com/tianping526/eventbridge/apis/api/eventbridge/dispatcher/v1;v1
+      path: eventbridge/dispatcher/v1
+
+
+inputs:
+  - proto_file: apis/api/eventbridge/service/v1/eventbridge_service_v1.proto
+    include_package_files: true
+  - proto_file: apis/api/eventbridge/dispatcher/v1/eventbridge_dispatcher_v1.proto
