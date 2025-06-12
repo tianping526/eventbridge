@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package eventbridge.service.conf;
+
+import "google/protobuf/duration.proto";
+
+option go_package = "github.com/tianping526/eventbridge/app/service/internal/conf;conf";
+
+
+message AppInfo {
+  string name = 1;
+  string version = 2;
+  string flag_conf = 3;
+  string id = 4;
+}
+
+message Bootstrap {
+  Trace trace = 1;
+  Server server = 2;
+  Data data = 3;
+  Auth auth = 5;
+  Log log = 6;
+}
+
+message Trace {
+  string endpoint_url = 1;
+}
+
+message Server {
+  message HTTP {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  message GRPC {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+}
+
+message Data {
+  message Database {
+    string driver = 1;
+    string source = 2;
+    int64 max_open = 3;
+    int64 max_idle = 4;
+    google.protobuf.Duration conn_max_life_time = 5;
+    google.protobuf.Duration conn_max_idle_time = 6;
+  }
+  message Redis {
+    string addr = 1;
+    string password = 2;
+    int64  db_index = 3;
+    google.protobuf.Duration  dial_timeout = 4;
+    google.protobuf.Duration  read_timeout = 5;
+    google.protobuf.Duration  write_timeout = 6;
+  }
+  Database database = 1;
+  Redis redis = 2;
+  string default_mq = 3;
+}
+
+message Auth {
+  string key = 1;
+}
+
+message Log {
+  enum Level {
+    DEBUG = 0;
+    INFO = 1;
+    WARN = 2;
+    ERROR = 3;
+  }
+
+  enum Encoding {
+    JSON = 0;
+    CONSOLE = 1;
+  }
+
+  message Sampling {
+    // This will log the first initial log entries with the same level and message
+    // in a one second interval as-is. Following that, it will allow through
+    // every thereafter log entry with the same level and message in that interval.
+    int32 initial = 1;
+    // If thereafter is zero, the Core will drop all log entries after the first N
+    // in that interval.
+    int32 thereafter = 2;
+  }
+
+  message Output {
+    message Rotate {
+      // max_size is the maximum size in megabytes of the log file before it gets
+      // rotated. It defaults to 100 megabytes.
+      int32 max_size = 2;
+      // max_age is the maximum number of days to retain old log files based on the
+      // timestamp encoded in their filename.  Note that a day is defined as 24
+      // hours and may not exactly correspond to calendar days due to daylight
+      // savings, leap seconds, etc. The default is not to remove old log files
+      // based on age.
+      int32 max_age = 3;
+      // max_backups is the maximum number of old log files to retain.  The default
+      // is to retain all old log files (though max_age may still cause them to get
+      // deleted.)
+      int32 max_backups = 4;
+      // compress determines if the rotated log files should be compressed
+      // using gzip. The default is not to perform compression.
+      bool compress = 5;
+    }
+
+    // Since it's common to write logs to the local filesystem, URLs without a
+    // scheme (e.g., "/var/log/foo.log") are treated as local file paths. Without
+    // a scheme, the special paths "stdout" and "stderr" are interpreted as
+    // os.Stdout and os.Stderr. When specified without a scheme, relative file
+    // paths also work.
+    string path = 1;
+
+    // The following option are only available if the path is to the local
+    // file system
+    Rotate rotate = 2;
+  }
+
+  Level level = 1;
+  Encoding encoding = 2;
+  // default sampling.is_initial = 100, sampling.thereafter = 100
+  Sampling sampling = 3;
+  // default output_paths.path = "stderr"
+  repeated Output output_paths = 4;
+}

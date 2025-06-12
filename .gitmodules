@@ -1,0 +1,3 @@
+[submodule "apis"]
+	path = apis
+	url = git@github.com:tianping526/apis.git

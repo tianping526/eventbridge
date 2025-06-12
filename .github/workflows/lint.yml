@@ -1,0 +1,35 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: lint module
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.1
+
+      - name: Generate API
+        run: go tool buf generate
+
+      - name: Generate
+        run: go generate ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          skip-cache: true

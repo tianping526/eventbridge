@@ -1,0 +1,70 @@
+name: Go
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+jobs:
+  build:
+    name: build & test
+    runs-on: ubuntu-latest
+
+    container:
+      image: golang:1.24.1
+      env:
+        TEST_ENV: CI
+
+    services:
+      postgres:
+        image: postgres:16.2
+
+        env:
+          POSTGRES_PASSWORD: example
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.4.2
+
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          
+      namesrv:
+        image: linktin/rocketmq-namesrv-ci:5.3.1
+
+      broker:
+        image: linktin/rocketmq-broker-ci:5.3.1
+
+      proxy:
+        image: linktin/rocketmq-proxy-ci:5.3.1
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
+      - name: Generate API
+        run: go tool buf generate
+
+      - name: Generate Code
+        run: go generate ./...
+
+      - name: Build
+        run: go build -buildvcs=false ./...
+
+      - name: Test
+        # Because rocketmq DATA RACE turns off the race option
+        run: go test -v -race -coverprofile=profile.out -covermode=atomic ./...

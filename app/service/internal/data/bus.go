@@ -1,0 +1,191 @@
+package data
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/go-kratos/kratos/v2/log"
+
+	v1 "github.com/tianping526/eventbridge/apis/api/eventbridge/service/v1"
+	"github.com/tianping526/eventbridge/app/service/internal/biz"
+	"github.com/tianping526/eventbridge/app/service/internal/data/ent"
+	entBus "github.com/tianping526/eventbridge/app/service/internal/data/ent/bus"
+	"github.com/tianping526/eventbridge/app/service/internal/data/ent/eventschema"
+	"github.com/tianping526/eventbridge/app/service/internal/data/ent/rule"
+)
+
+const busesVersionID = 1
+
+type busRepo struct {
+	data *Data
+	log  *log.Helper
+}
+
+func NewBusRepo(data *Data, logger log.Logger) biz.BusRepo {
+	return &busRepo{
+		data: data,
+		log: log.NewHelper(log.With(
+			logger,
+			"module", "repo/bus",
+			"caller", log.DefaultCaller,
+		)),
+	}
+}
+
+func (repo *busRepo) ListBus(
+	ctx context.Context, prefix *string, limit int32, nextToken uint64,
+) ([]*biz.Bus, uint64, error) {
+	stmt := repo.data.db.Bus.Query()
+	if prefix != nil {
+		stmt.Where(entBus.NameHasPrefix(*prefix))
+	}
+	if nextToken > 0 {
+		stmt.Where(entBus.IDGTE(nextToken))
+	}
+	convertedLimit := int(limit)
+	bs, err := stmt.Order(ent.Asc("id")).Limit(convertedLimit + 1).All(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	next := uint64(0)
+	if len(bs) > convertedLimit {
+		next = bs[convertedLimit].ID
+		bs = bs[:convertedLimit]
+	}
+	buses := make([]*biz.Bus, 0, len(bs))
+	for _, b := range bs {
+		buses = append(buses, &biz.Bus{
+			Name:                b.Name,
+			SourceTopic:         b.SourceTopic,
+			SourceDelayTopic:    b.SourceDelayTopic,
+			TargetExpDecayTopic: b.TargetExpDecayTopic,
+			TargetBackoffTopic:  b.TargetBackoffTopic,
+			Mode:                v1.BusWorkMode(b.Mode),
+		})
+	}
+	return buses, next, nil
+}
+
+func (repo *busRepo) CreateBus(
+	ctx context.Context, bus string, mode v1.BusWorkMode, sourceTopic string,
+	sourceDelayTopic string, targetExpDecayTopic string, targetBackoffTopic string,
+) (uint64, error) {
+	var id uint64
+	err := WithTx(ctx, repo.data.db, func(tx *ent.Tx) error {
+		b, te := repo.data.db.Bus.Create().
+			SetName(bus).
+			SetMode(uint8(mode)).
+			SetSourceTopic(sourceTopic).
+			SetSourceDelayTopic(sourceDelayTopic).
+			SetTargetExpDecayTopic(targetExpDecayTopic).
+			SetTargetBackoffTopic(targetBackoffTopic).
+			Save(ctx)
+		if te != nil {
+			if ent.IsConstraintError(te) {
+				te = v1.ErrorBusNameRepeat(
+					"bus name repeat.name: %s",
+					bus,
+				)
+			}
+			return te
+		}
+
+		// update version
+		te = tx.Version.UpdateOneID(busesVersionID).AddVersion(1).Exec(ctx)
+		if te != nil {
+			return te
+		}
+
+		id = b.ID
+		return nil
+	})
+
+	return id, err
+}
+
+func (repo *busRepo) DeleteBus(ctx context.Context, busName string) error {
+	var schemaIDs []uint64
+	err := WithTx(ctx, repo.data.db, func(tx *ent.Tx) error {
+		// query bus and lock
+		bid, te := tx.Bus.Query().
+			Where(
+				entBus.Name(busName),
+			).
+			ForUpdate().
+			OnlyID(ctx)
+		if te != nil {
+			if ent.IsNotFound(te) {
+				return v1.ErrorDataBusNotFound(
+					"can't find the data bus. name: %s",
+					busName,
+				)
+			}
+			return te
+		}
+
+		// query schema
+		schemaIDs, te = tx.EventSchema.Query().
+			Where(
+				eventschema.BusName(busName),
+			).
+			IDs(ctx)
+		if te != nil {
+			return te
+		}
+
+		// Set schema bus name to ""
+		te = tx.EventSchema.Update().
+			Where(
+				eventschema.IDIn(schemaIDs...),
+				eventschema.BusName(busName),
+			).
+			SetBusName("").
+			AddVersion(1).
+			Exec(ctx)
+		if te != nil {
+			return te
+		}
+
+		// delete rule
+		_, te = tx.Rule.Delete().Where(rule.BusName(busName)).Exec(ctx)
+		if te != nil {
+			return te
+		}
+
+		// delete data bus
+		te = tx.Bus.DeleteOneID(bid).Exec(ctx)
+		if te != nil {
+			return te
+		}
+
+		// update version
+		te = tx.Version.UpdateOneID(busesVersionID).AddVersion(1).Exec(ctx)
+		if te != nil {
+			return te
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// update cache
+	schemas, err := repo.data.db.EventSchema.Query().
+		Where(
+			eventschema.IDIn(schemaIDs...),
+		).
+		All(ctx)
+	if err != nil {
+		repo.log.WithContext(ctx).Errorf("query schema: %+v", err)
+		return nil
+	}
+	for _, s := range schemas {
+		err = SetCacheSchema(ctx, repo.data.rc, fmt.Sprintf("%s:%s", s.Source, s.Type), s)
+		if err != nil {
+			repo.log.WithContext(ctx).Errorf("SetCacheSchema: %+v, schema: %+v", err, s)
+		}
+	}
+
+	return nil
+}

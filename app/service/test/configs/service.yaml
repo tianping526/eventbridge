@@ -1,0 +1,43 @@
+bootstrap:
+#  trace:
+#    endpoint_url: https://localhost:4317/v1/traces
+  server:
+    http:
+      addr: 0.0.0.0:8011
+      timeout: 1s
+    grpc:
+      addr: 0.0.0.0:9011
+      timeout: 1s
+  data:
+    database:
+      driver: postgres
+      source: postgresql://postgres:example@postgres:5432/postgres
+      #      driver: mysql
+      #      source: root:example@tcp(127.0.0.1:12222)/test?timeout=1s&readTimeout=1s&writeTimeout=1s&parseTime=true&loc=Local&charset=utf8mb4,utf8&interpolateParams=true
+      max_open: 100
+      max_idle: 10
+      conn_max_life_time: 0s
+      conn_max_idle_time: 300s
+    redis:
+      addr: redis:6379
+      password:
+      db_index: 0
+      dial_timeout: 1s
+      read_timeout: 0.2s
+      write_timeout: 0.2s
+    default_mq: rocketmq://proxy:8081
+  auth:
+    key: some-secret-key
+#  log:
+#    level: INFO # DEBUG, INFO, WARN, ERROR
+#    encoding: JSON # JSON, CONSOLE
+#    sampling:
+#      initial: 100
+#      thereafter: 100
+#    output_paths:
+#      - path: ./log/server.log
+#        rotate:
+#          max_size: 100
+#          max_age: 30
+#          max_backups: 3
+#          compress: false
