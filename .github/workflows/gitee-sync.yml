@@ -11,11 +11,6 @@ jobs:
     name: Run
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-        with:
-          submodules: 'true'
-
       - name: Mirror Github to Gitee
         uses: Yikun/hub-mirror-action@v1.5
         with:
