@@ -8,60 +8,60 @@
 
 ## EventBridge
 
-EventBridge 是EDA的实现，提供了Event的过滤、转换和路由功能。
+EventBridge 是 EDA 的实现，提供了 Event 的过滤、转换和路由功能。
 
 ### Event
 
-Event⽤来表⽰分布式系统中发⽣的状态变化。Event数据结构所遵循的schema可以通过 source + type 在Schema中索引。
-Event包含以下字段：
+Event 用来表示分布式系统中发生的状态变化。Event 数据结构所遵循的 schema 可以通过 source + type 在 Schema 中索引。
+Event 包含以下字段：
 
-- `id`: Event在Source中的唯一标识符。如果不指定，EventBridge会自动生成一个。
-- `source`: Event的源头，通常是服务或应用程序的名称。
-- `subject`: 可选，在Source内部的更细粒度的上下⽂标识。
-- `type`: Event的类型，用于区分不同类型的Event。
-- `time`: 事件的发⽣时间（⾮EventBridge接收时间），由发送端设置。
-- `data`: 与特定领域相关的场景数据，遵循由source + type 确定的Schema.
-- `datacontenttype`: 仅支持 `application/json`，表示data的内容类型。
+- `id`: Event 在 Source 中的唯一标识符。如果不指定，EventBridge 会自动生成一个。
+- `source`: Event 的源头，通常是服务或应用程序的名称。
+- `subject`: 可选，在 Source 内部的更细粒度的上下文标识。
+- `type`: Event 的类型，用于区分不同类型的 Event。
+- `time`: 事件的发生时间（非 EventBridge 接收时间），由发送端设置。
+- `data`: 与特定领域相关的场景数据，遵循由 source + type 确定的 Schema。
+- `datacontenttype`: 仅支持 `application/json`，表示 data 的内容类型。
 
-向EventBridge发送Event时，可以指定 `pub_time` 和 `retry_strategy`，
-`pub_time`决定Event何时发送到Target，`retry_strategy`决定发送失败后采取什么样的重试策略。
+向 EventBridge 发送 Event 时，可以指定 `pub_time` 和 `retry_strategy`，
+`pub_time` 决定 Event 何时发送到 Target，`retry_strategy` 决定发送失败后采取什么样的重试策略。
 
 ### Source
 
-Event的源头，通常是一个服务或应用程序，它会生成Event并将其发送到EventBridge。
+Event 的源头，通常是一个服务或应用程序，它会生成 Event 并将其发送到 EventBridge。
 
 ### Schema
 
-Schema定义了Event的结构和格式，使用JSON Schema来描述。
-想要将Event发送到EventBridge，必须先注册Schema。
-Schema包含以下字段：
+Schema 定义了 Event 的结构和格式，使用 JSON Schema 来描述。
+想要将 Event 发送到 EventBridge，必须先注册 Schema。
+Schema 包含以下字段：
 
-- `source`: Event的源头，通常是服务或应用程序的名称。
-- `type`: Event的类型，用于区分不同类型的Event。
-- `bus_name`: Event所属的Bus名称，EventBridge会根据Bus名称将Event路由到对应的Bus。
-- `spec`: 序列化的JSON Schema，用于描述Event的结构。
-- `version`: Schema的版本号，每次Schema变更时，版本号会递增。
+- `source`: Event 的源头，通常是服务或应用程序的名称。
+- `type`: Event 的类型，用于区分不同类型的 Event。
+- `bus_name`: Event 所属的 Bus 名称，EventBridge 会根据 Bus 名称将 Event 路由到对应的 Bus。
+- `spec`: 序列化的 JSON Schema，用于描述 Event 的结构。
+- `version`: Schema 的版本号，每次 Schema 变更时，版本号会递增。
 
 ### Bus
 
-⽤来存储和传输事件的中转站，Bus和Bus的资源完全隔离，
-可以存在多个Bus，EventBridge⾃带 Default Bus。
-Bus有并发和有序两种模式，如果是有序模式，Event会按照发送顺序进行处理。
-Bus被移除时，和Bus相关的Schema和Rule也会被删除。
+用来存储和传输事件的中转站，Bus 和 Bus 的资源完全隔离，
+可以存在多个 Bus，EventBridge 自带 Default Bus。
+Bus 有并发和有序两种模式，如果是有序模式，Event 会按照发送顺序进行处理。
+Bus 被移除时，和 Bus 相关的 Schema 和 Rule 也会被删除。
 
 ### Rule
 
-Rule用于对Event进行过滤、转换和路由。
+Rule 用于对 Event 进行过滤、转换和路由。
 
 #### Pattern
 
-Pattern是Rule的⼦概念，⽤来过滤符合特定条件的事件。
-Pattern的整体结构与Event相同，区别在于Event描述内容，⽽Pattern描述的是匹配规则。
+Pattern 是 Rule 的子概念，用来过滤符合特定条件的事件。
+Pattern 的整体结构与 Event 相同，区别在于 Event 描述内容，而 Pattern 描述的是匹配规则。
 
 #### Target
 
-Target是Rule的⼦概念，包含Event的转换规则和发送目标。
-下面是Target的示例：
+Target 是 Rule 的子概念，包含 Event 的转换规则和发送目标。
+下面是 Target 的示例：
 
 ```json
 {
@@ -91,18 +91,18 @@ Target是Rule的⼦概念，包含Event的转换规则和发送目标。
 }
 ```
 
-上面定义了一个使用HTTP POST请求，将`{"code":"10188:{$.data.a}"}`发送到`http://127.0.0.1:10188/target/event`
-的Target。`Params`定义了将Event转换成`HTTPDispatcher`参数的细节，`RetryStrategy`的指定则会覆盖Event中`RetryStrategy`。
+上面定义了一个使用 HTTP POST 请求，将 `{"code":"10188:{$.data.a}"}` 发送到 `http://127.0.0.1:10188/target/event`
+的 Target。`Params` 定义了将 Event 转换成 `HTTPDispatcher` 参数的细节，`RetryStrategy` 的指定则会覆盖 Event 中 `RetryStrategy`。
 
 ##### Dispatcher
 
-Dispatcher是Target的类型，负责将Event发送到指定的目标。目前EventBridge支持以下Dispatcher类型：
+Dispatcher 是 Target 的类型，负责将 Event 发送到指定的目标。目前 EventBridge 支持以下 Dispatcher 类型：
 
-- `HTTPDispatcher`: 通过HTTP请求发送Event。
-- `gRPCDispatcher`: 通过gRPC请求发送Event。
+- `HTTPDispatcher`: 通过 HTTP 请求发送 Event。
+- `gRPCDispatcher`: 通过 gRPC 请求发送 Event。
 
-你可以使用接口`rpc ListDispatcherSchema`来获取所有Dispatcher的DispatcherSchema。
-下面是`HTTPDispatcher`的DispatcherSchema:
+你可以使用接口 `rpc ListDispatcherSchema` 来获取所有 Dispatcher的 DispatcherSchema。
+下面是 `HTTPDispatcher` 的 DispatcherSchema:
 
 ```json
 {
@@ -140,5 +140,5 @@ Dispatcher是Target的类型，负责将Event发送到指定的目标。目前Ev
 }
 ```
 
-上面的DispatcherSchema描述了`HTTPDispatcher`的参数结构，
-包含`method`、`url`、`header`和`body`四个字段， 其中`method`、`url`是必选字段。
+上面的 DispatcherSchema 描述了 `HTTPDispatcher` 的参数结构，
+包含 `method`、`url`、`header` 和 `body` 四个字段，其中 `method`、`url` 是必选字段。
