@@ -47,7 +47,7 @@ services:
       - JAVA_OPT_EXT=-server -Xms256m -Xmx256m -Xmn128m
     command: sh mqproxy
 
-  create-orderly-data-bus:
+  create-default-orderly-data-bus:
     restart: on-failure
     image: apache/rocketmq:5.3.1
     depends_on:
