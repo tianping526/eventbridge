@@ -99,8 +99,18 @@ networks:
 
 - `db`：Postgres 数据库服务，使用密码 `example`，端口 5432。
 - `redis`：Redis 服务，端口 6379。
-- `mq-proxy`: RocketMQ Proxy 服务，端口 8081。
-- `create-default-data-bus`: 创建 Default Bus 的 Topic 并配置订阅组，后面会对里面的命令进行详解。
+- `mq-proxy`：RocketMQ Proxy 服务，端口 8081。
+- `create-default-data-bus`：创建 Default Bus 的 Topic 并配置订阅组。
+  - 为 Default Bus 创建了四个 Topic：
+    - `EBInterBusDefault`：用于接收实时 Event 的 Topic。
+    - `EBInterDelayBusDefault`：用于接收延迟 Event 的 Topic，额外添加了 `message.type=DELAY` 的属性。
+    - `EBInterTargetExpDecayBusDefault`：用于存放需要进行指数衰减策略重试的 Event 的 Topic。
+    - `EBInterTargetBackoffBusDefault`：用于存放需要进行退避策略重试的 Event 的 Topic。
+  - 为每个 Topic 创建了对应的订阅组：
+    - 订阅组的名字是[{host}{port}{topic}](https://github.com/tianping526/eventbridge/blob/main/app/job/internal/data/rocketmq.go#L101)的格式。
+    - `EBInterTargetExpDecayBusDefault` 订阅组的重试次数设置为 176 次，如果设置错误，Job 将无法正确处理指数衰减策略的重试。
+    - `EBInterTargetBackoffBusDefault` 订阅组的重试次数设置为 3 次，如果设置错误，Job 将无法正确处理退避策略的重试。
+    - 其他订阅组的重试次数设置为 3 次，代表 Event 在 Job 内部流转失败时的重试次数。
 
 启动docker-compose：
 
@@ -261,7 +271,7 @@ curl --location '127.0.0.1:8011/v1/eventbridge/buses?prefix=Default' \
 Default Bus 的 `source_topic`、`source_delay_topic`、`target_exp_decay_topic` 和 `target_backoff_topic`
 分别是 `EBInterBusDefault`、`EBInterDelayBusDefault`、`EBInterTargetExpDecayBusDefault`
 和 `EBInterTargetBackoffBusDefault`。
-这四个 Topic 的作用，你可以查看[架构](architecture.md#job)和[实体关系图](erd.md#bus)了解更多。
+这四个 Topic 的作用，你可以查看[架构](architecture.md#job)和[实体关系图](erd.md#bus)以了解更多。
 
 ### 创建 Orderly Bus
 
@@ -280,6 +290,18 @@ curl --location '127.0.0.1:8011/v1/eventbridge/bus' \
 }'
 
 # {"id":"28866794466836484"}
+```
+
+如果 Bus 的工作模式是顺序处理（`BUS_WORK_MODE_ORDERLY`），则需要为其创建顺序处理的 Topic。
+如下所示， `EBInterBusOrderly`、`EBInterTargetExpDecayBusOrderly` 
+和 `EBInterTargetBackoffBusOrderly` 额外添加了 `-a +message.type=FIFO -o true` 的参数。
+如果不添加这些参数，RocketMQ 会将这些 Topic 视为普通 Topic，Event 的处理将不再是顺序的。
+
+```bash
+./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
+./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterDelayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=DELAY | tee /dev/stderr | grep success        
+./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
+./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
 ```
 
 ## 创建 Schema
