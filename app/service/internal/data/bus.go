@@ -83,7 +83,7 @@ func (repo *busRepo) CreateBus(
 		if te != nil {
 			if ent.IsConstraintError(te) {
 				te = v1.ErrorBusNameRepeat(
-					"bus name repeat.name: %s",
+					"bus name repeat. name: %s",
 					bus,
 				)
 			}

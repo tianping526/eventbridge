@@ -1,0 +1,406 @@
+# 快速开始
+
+## 部署
+
+<details>
+<summary><span style="font-size:1.5em; font-weight:bold;">使用 Docker 部署</span></summary>
+
+#### 启动 Postgres，Redis 和 RocketMQ
+
+准备 `docker-compose.yaml` 文件：
+
+```yaml
+services:
+  db:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: example
+    depends_on:
+      - redis
+    networks:
+      - eventbridge
+
+  redis:
+    image: redis
+    networks:
+      - eventbridge
+
+  mq-namesrv:
+    restart: always
+    image: apache/rocketmq:5.3.1
+    environment:
+      - JAVA_OPT_EXT=-server -Xms256m -Xmx256m -Xmn128m
+    command: sh mqnamesrv
+    networks:
+      - eventbridge
+
+  mq-broker:
+    restart: always
+    image: apache/rocketmq:5.3.1
+    depends_on:
+      - mq-namesrv
+    environment:
+      - NAMESRV_ADDR=mq-namesrv:9876
+      - JAVA_OPT_EXT=-server -Xms512m -Xmx512m -Xmn256m
+    command: sh mqbroker
+    networks:
+      - eventbridge
+
+  mq-proxy:
+    restart: always
+    image: apache/rocketmq:5.3.1
+    depends_on:
+      - mq-namesrv
+      - mq-broker
+    environment:
+      - NAMESRV_ADDR=mq-namesrv:9876
+      - JAVA_OPT_EXT=-server -Xms256m -Xmx256m -Xmn128m
+    command: sh mqproxy
+    networks:
+      - eventbridge
+
+  create-default-data-bus:
+    restart: on-failure
+    image: apache/rocketmq:5.3.1
+    depends_on:
+      - mq-namesrv
+      - mq-broker
+      - mq-proxy
+    networks:
+      - eventbridge
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+
+        # Create Default data bus
+        until ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success; do
+        echo "Retrying updateTopic for EBInterBusDefault..."
+        sleep 1
+        done
+
+        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterDelayBusDefault -c DefaultCluster -r 8 -w 8 -a +message.type=DELAY | tee /dev/stderr | grep success
+        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
+        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
+
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterBusDefault -r 3 | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterDelayBusDefault -r 3 | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterTargetExpDecayBusDefault -r 176 | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterTargetBackoffBusDefault -r 3 | tee /dev/stderr | grep success
+
+networks:
+  eventbridge:
+    name: eventbridge
+    driver: bridge
+```
+
+有一些重要的信息需要关注：
+
+- `db`：Postgres 数据库服务，使用密码 `example`，端口 5432。
+- `redis`：Redis 服务，端口 6379。
+- `mq-proxy`: RocketMQ Proxy 服务，端口 8081。
+- `create-default-data-bus`: 创建 Default Bus 的 Topic 并配置订阅组，后面会对里面的命令进行详解。
+
+启动docker-compose：
+
+```bash
+# 确保当前目录下有 docker-compose.yaml 文件
+docker-compose -f docker-compose.yaml up -d
+```
+
+查看服务状态：
+
+```bash
+docker-compose -f docker-compose.yaml ps -a
+```
+
+```bash
+NAME                                    IMAGE                   COMMAND                  SERVICE                   CREATED          STATUS                     PORTS
+eventbridge-create-default-data-bus-1   apache/rocketmq:5.3.1   "./docker-entrypoint…"   create-default-data-bus   43 seconds ago   Exited (0) 3 seconds ago   
+eventbridge-db-1                        postgres                "docker-entrypoint.s…"   db                        43 seconds ago   Up 43 seconds              5432/tcp
+eventbridge-mq-broker-1                 apache/rocketmq:5.3.1   "./docker-entrypoint…"   mq-broker                 44 seconds ago   Up 43 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
+eventbridge-mq-namesrv-1                apache/rocketmq:5.3.1   "./docker-entrypoint…"   mq-namesrv                44 seconds ago   Up 43 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
+eventbridge-mq-proxy-1                  apache/rocketmq:5.3.1   "./docker-entrypoint…"   mq-proxy                  43 seconds ago   Up 31 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
+eventbridge-redis-1                     redis                   "docker-entrypoint.s…"   redis                     44 seconds ago   Up 43 seconds              6379/tcp
+```
+
+`eventbridge-create-default-data-bus-1` 状态为 `Exited (0)` 表示创建 Default Bus 的 Topic 和配置订阅组成功。
+
+#### 启动 Service
+
+```bash
+# 确保当前目录下有 service.yaml 文件
+docker run -d --network eventbridge -p 8011:8011 -p 9011:9011 -v $(pwd)/service.yaml:/data/conf/service.yaml linktin/eb-service:1.0.0
+```
+
+下面是 `service.yaml` 的内容，你还可以查看 Service 的 [配置文件示例](../../app/service/configs/service.yaml)
+和 [schema](../../app/service/internal/conf/conf.proto)。
+
+```yaml
+bootstrap:
+  server:
+    http:
+      addr: 0.0.0.0:8011 # 监听 HTTP 请求的端口
+      timeout: 1s
+    grpc:
+      addr: 0.0.0.0:9011 # 监听 gRPC 请求的端口
+      timeout: 1s
+  data:
+    database:
+      driver: postgres
+      source: postgresql://postgres:example@db:5432/postgres # Postgres 数据库连接字符串
+      max_open: 100
+      max_idle: 10
+      conn_max_life_time: 0s
+      conn_max_idle_time: 300s
+    redis:
+      addr: redis:6379 # Redis 服务地址
+      password:
+      db_index: 0
+      dial_timeout: 1s
+      read_timeout: 0.2s
+      write_timeout: 0.2s
+    default_mq: rocketmq://mq-proxy:8081 # RocketMQ Proxy 服务地址
+```
+
+查看服务状态：
+
+```bash
+docker ps -a
+```
+
+```bash
+CONTAINER ID   IMAGE                      COMMAND                  CREATED         STATUS                     PORTS                                            NAMES
+0cfa5a79afb8   linktin/eb-service:1.0.0   "./server -conf /dat…"   5 seconds ago   Up 4 seconds               0.0.0.0:8011->8011/tcp, 0.0.0.0:9011->9011/tcp   sweet_yalow
+```
+
+Service 状态为 `Up` 表示启动成功。
+
+#### 启动 Job
+
+```bash
+# 确保当前目录下有 job.yaml 文件
+docker run -d --network eventbridge -v $(pwd)/job.yaml:/data/conf/job.yaml linktin/eb-job:1.0.0
+```
+
+下面是 `job.yaml` 的内容，你还可以查看 Job 的 [配置文件示例](../../app/job/configs/service.yaml)
+和 [schema](../../app/job/internal/conf/conf.proto)。
+
+```yaml
+bootstrap:
+  server:
+    http:
+      addr: 0.0.0.0:8012 # Metrics HTTP 端口
+      timeout: 1s
+    event:
+      source_timeout: 1s # 处理 source_topic 中 Event 的超时时间
+      delay_timeout: 1s # 处理 source_delay_topic 中 Event 的超时时间
+      target_exp_decay_timeout: 3s # 处理 target_exp_decay_topic 中 Event 的超时时间
+      target_backoff_timeout: 3s # 处理 target_backoff_topic 中 Event 的超时时间
+  data:
+    database:
+      driver: postgres
+      source: postgresql://postgres:example@db:5432/postgres # Postgres 数据库连接字符串
+      max_open: 100
+      max_idle: 10
+      conn_max_life_time: 0s
+      conn_max_idle_time: 300s
+    default_mq: rocketmq://mq-proxy:8081 # RocketMQ Proxy 服务地址
+```
+
+查看服务状态：
+
+```bash
+docker ps -a
+```
+
+```bash
+CONTAINER ID   IMAGE                      COMMAND                  CREATED          STATUS                      PORTS                                            NAMES
+b7c280bfde43   linktin/eb-job:1.0.0       "./server -conf /dat…"   5 seconds ago    Up 5 seconds                                                                 happy_hugle
+```
+
+Job 状态为 `Up` 表示启动成功。
+
+</details>
+
+## 创建 Bus
+
+### 创建 Default Bus
+
+创建名为 Default 的 Bus 会失败，因为 EventBridge 启动时会自动创建一个名为 Default 的 Bus。
+你可以查看 [HTTP Create Bus](https://github.com/tianping526/apis/blob/main/openapi.yaml#L10)
+和 [gRPC Create Bus](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto#L47)
+的定义，了解创建 Bus 的请求格式。
+
+```bash
+curl --location '127.0.0.1:8011/v1/eventbridge/bus' \
+--header 'Content-Type: application/json' \
+--header 'Accept: application/json' \
+--data '{
+  "name": "Default",
+  "mode": 1
+}'
+
+# {"code":400, "reason":"BUS_NAME_REPEAT", "message":"bus name repeat. name: Default", "metadata":{}}
+```
+
+查看 Default Bus 的信息， 你可以查看 [HTTP List Buses](https://github.com/tianping526/apis/blob/main/openapi.yaml#L59)
+和 [gRPC List Buses](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto#L43)
+的定义，了解查询 Bus 的请求格式。
+
+```bash
+
+```Bash
+curl --location '127.0.0.1:8011/v1/eventbridge/buses?prefix=Default' \
+--header 'Accept: application/json'
+
+# {"buses":[{"name":"Default", "mode":"BUS_WORK_MODE_CONCURRENTLY", "sourceTopic":"EBInterBusDefault", "sourceDelayTopic":"EBInterDelayBusDefault", "targetExpDecayTopic":"EBInterTargetExpDecayBusDefault", "targetBackoffTopic":"EBInterTargetBackoffBusDefault"}], "nextToken":"0"}
+```
+
+Default Bus 的 `source_topic`、`source_delay_topic`、`target_exp_decay_topic` 和 `target_backoff_topic`
+分别是 `EBInterBusDefault`、`EBInterDelayBusDefault`、`EBInterTargetExpDecayBusDefault`
+和 `EBInterTargetBackoffBusDefault`。
+这四个 Topic 的作用，你可以查看[架构](architecture.md#job)和[实体关系图](erd.md#bus)了解更多。
+
+### 创建 Orderly Bus
+
+我们可以创建其他 Bus，例如 Orderly，模式为顺序处理（`BUS_WORK_MODE_ORDERLY`）。
+你可以查看 [HTTP Create Bus](https://github.com/tianping526/apis/blob/main/openapi.yaml#L10)
+和 [gRPC Create Bus](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto#L47)
+的定义，了解创建 Bus 的请求格式。
+
+```bash
+curl --location '127.0.0.1:8011/v1/eventbridge/bus' \
+--header 'Content-Type: application/json' \
+--header 'Accept: application/json' \
+--data '{
+  "name": "Orderly",
+  "mode": 2
+}'
+
+# {"id":"28866794466836484"}
+```
+
+## 创建 Schema
+
+创建 Schema 的请求格式，你可以查看 [HTTP Create Schema](https://github.com/tianping526/apis/blob/main/openapi.yaml#L280)
+和 [gRPC Create Schema](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto#L24)。
+
+```bash
+curl --location '127.0.0.1:8011/v1/eventbridge/schema' \
+--header 'Content-Type: application/json' \
+--header 'Accept: application/json' \
+--data '{
+  "source": "testSource1",
+  "type": "testSourceType1",
+  "busName": "Default",
+  "spec": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"string\"}}}"
+}'
+```
+
+这个请求会为 Source `testSource1` 的 `testSourceType1` 类型的 Event 创建一个 Schema。
+这种 Event 有一个 `string` 类型的属性 `a`， 要发往 Default Bus。
+
+## 创建 Rule
+
+创建 Rule 的请求格式，你可以查看 [HTTP Create Rule](https://github.com/tianping526/apis/blob/main/openapi.yaml#L152)
+和 [gRPC Create Rule](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto#L63)。
+
+```bash
+curl --location '127.0.0.1:8011/v1/eventbridge/rule' \
+--header 'Content-Type: application/json' \
+--header 'Accept: application/json' \
+--data '{
+  "name": "TestRule",
+  "busName": "Default",
+  "status": "RULE_STATUS_ENABLE",
+  "pattern": "{\"source\":[{\"prefix\":\"testSource1\"}]}",
+  "targets": [
+    {
+      "id": 1,
+      "type": "HTTPDispatcher",
+      "params": [
+        {
+          "key": "url",
+          "form": "CONSTANT",
+          "value": "http://192.168.30.143:10188/target/event"
+        },
+        {
+          "key": "method",
+          "form": "CONSTANT",
+          "value": "POST"
+        },
+        {
+          "key": "body",
+          "form": "TEMPLATE",
+          "value": "{\"subject\":\"$.data.a\"}",
+          "template": "{\"code\":\"10188:${subject}\"}"
+        }
+      ],
+      "retryStrategy": 1
+    }
+  ]
+}'
+```
+
+我们在 Default Bus 上创建了一个名为 `TestRule` 的 Rule。这个 Rule 会匹配 `source` 前缀为 `testSource1` 的 Event，并将
+Event 通过 HTTP POST 方法发送到 `http://192.168.30.143:10188/target/event` ，HTTP Body 的内容是
+`{"code":"10188:{$.data.a}"}`。
+
+为了能顺利接收 `TestRule` 发送的 Event，我们需要在 `192.168.30.143` 这台主机上启动下面这个 HTTP 服务。
+
+```go
+package main
+
+import (
+	"fmt"
+	"io"
+	"net/http"
+)
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/target/event", func(writer http.ResponseWriter, request *http.Request) {
+		defer request.Body.Close()
+		body, _ := io.ReadAll(request.Body)
+		fmt.Println("Received event:", string(body))
+	})
+	server := &http.Server{
+		Addr:    ":10188",
+		Handler: mux,
+	}
+	err := server.ListenAndServe()
+	if err != nil {
+		fmt.Println("Error listening on port 10188:", err)
+	}
+}
+```
+
+## 发送 Event
+
+发送 Event 的请求格式，你可以查看 [HTTP Post Event](https://github.com/tianping526/apis/blob/main/openapi.yaml#L127)
+和 [gRPC Post Event](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto#L12)。
+
+```bash
+curl --location '127.0.0.1:8011/v1/eventbridge/event' \
+--header 'Content-Type: application/json' \
+--header 'Accept: application/json' \
+--data '{
+    "event": {
+        "id": "1",
+        "source": "testSource1",
+        "type": "testSourceType1",
+        "time": "2025-06-22T05:28:28.974Z",
+        "data": "{\"a\": \"i am test content\"}",
+        "datacontenttype": "application/json"
+    },
+    "retryStrategy": "RETRY_STRATEGY_BACKOFF"
+}'
+```
+
+主机 `192.168.30.143` 上运行的 HTTP 服务会接收到如下内容：
+
+```
+Received event: {"code":"10188:i am test content"}
+```
