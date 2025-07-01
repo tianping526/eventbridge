@@ -8,7 +8,7 @@
 
 ## EventBridge
 
-EventBridge 是 EDA 的实现，提供了 Event 的过滤、转换和路由功能。
+EventBridge 是 EDA 的实现，提供了 Event 的匹配、转换和路由功能。
 
 ### Event
 
@@ -51,11 +51,11 @@ Bus 被移除时，和 Bus 相关的 Schema 和 Rule 也会被删除。
 
 ### Rule
 
-Rule 用于对 Event 进行过滤、转换和路由。
+Rule 用于对 Event 进行匹配、转换和路由。
 
 #### Pattern
 
-Pattern 是 Rule 的子概念，用来过滤符合特定条件的事件。
+Pattern 是 Rule 的子概念，用来匹配符合特定条件的事件。
 Pattern 的整体结构与 Event 相同，区别在于 Event 描述内容，而 Pattern 描述的是匹配规则。
 
 #### Target

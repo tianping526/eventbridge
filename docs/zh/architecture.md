@@ -12,7 +12,7 @@ Schema、Bus、Rule 和 Version 等实体都存储在 Postgres 数据库中，Ev
 
 ## Job
 
-Job 是处理 Event 的工作组件，负责从消息队列中消费 Event，应用 Rule 进行过滤、转换和发送。
+Job 是处理 Event 的工作组件，负责从消息队列中消费 Event，应用 Rule 进行匹配、转换和发送。
 
 <p style="text-align: center;">
   <img src="img/job-arch.svg" alt="img/job-arch.svg" />

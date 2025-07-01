@@ -2,16 +2,21 @@
 
 ## Pattern
 
-Pattern 是 Rule 的子概念，用于匹配 Event。
+Pattern is a sub-concept of Rule, used to match events that meet specific conditions.
 
-### 注意事项
+### Notes
 
-- Pattern 是逐个字符精确匹配的，需注意大小写，匹配过程中不会对字符串进行任何处理。
-- 要匹配的值遵循 JSON 规则：字符串带引号，数字、`true`、`false` 和 `null` 不带引号。
-- Pattern 对 Event 多个特定字段进行匹配，待匹配的字段之间是逻辑"与"，
-  即所有参与匹配的字段都必须匹配成功，才能认为 Pattern 匹配成功。
+- Pattern is matched character by character, case-sensitive, 
+  and no processing is performed on the strings during matching.
+- Values to be matched follow JSON rules: strings are quoted, 
+  numbers, `true`, `false`, and `null` are not quoted.
+- Pattern matches multiple specific fields of an Event, 
+  where the fields to be matched are combined with "AND" logic,
+  meaning all participating fields must match successfully for 
+  the Pattern to be considered a match.
 
-> `data.name != test` 且 `data.scope != 100` 才能匹配成功。
+> The match succeeds only if the `data.name` field is not equal to `test` 
+> and the `data.scope` field is not equal to 100.
 
 ```json
 {
@@ -30,10 +35,11 @@ Pattern 是 Rule 的子概念，用于匹配 Event。
 }
 ```
 
-- Pattern 对 Event 特定字段进行匹配，同一个字段的多个匹配规则之间是逻辑"或"，
-  即只要有一个匹配成功，就认为 Pattern 匹配成功。
+- Pattern matches specific fields of an event. 
+  For multiple matching rules on the same field, a logical "OR" is applied,
+  meaning if any one of the matching rules succeeds, the Pattern is considered a match.
 
-> `subject` 后缀是 `est` 或 `xxx`，都能匹配成功。
+> The match succeeds if the suffix of the `subject` field is either `est` or `xxx`.
 
 ```json
 {
@@ -48,11 +54,12 @@ Pattern 是 Rule 的子概念，用于匹配 Event。
 }
 ```
 
-- Pattern 对 Event 特定字段进行匹配，同一个字段的多个匹配规则之间，也可以是逻辑"与"，
-  即所有匹配规则都必须匹配成功，才能认为 Pattern 匹配成功。
+- Pattern matches specific fields of an event. 
+  Multiple matching rules for the same field can also use "AND" logic, 
+  meaning all matching rules must succeed for the pattern to be considered a match.
 
-> `source` 前缀是 `aa` 且后缀是 `bb`，才能匹配成功。
-> 注意 `source` 字段逻辑"与"和逻辑"或"的写法区别。
+> The match succeeds only if the `source` field starts with `aa` and ends with `bb`.
+> Note the difference in writing between logical "AND" and "OR" in the `source` field.
 
 ```json
 {
@@ -65,11 +72,11 @@ Pattern 是 Rule 的子概念，用于匹配 Event。
 }
 ```
 
-### 匹配规则
+### Matching Rules
 
-#### 前缀匹配
+#### Prefix
 
-前缀匹配规则用于匹配字符串的前缀部分。
+Prefix is used to match the prefix part of a string.
 
 <table>
 <tr>
@@ -104,11 +111,11 @@ Pattern 是 Rule 的子概念，用于匹配 Event。
 </tr>
 </table>
 
-上述示例中，匹配Event的`source`字段前缀为`testSource1`，匹配成功。
+Above, the `source` field of the Event matches the prefix `testSource1`, matching succeeds.
 
-#### 后缀匹配
+#### Suffix
 
-后缀匹配规则用于匹配字符串的后缀部分。
+Suffix is used to match the suffix part of a string.
 
 <table>
 <tr>
@@ -146,11 +153,11 @@ Pattern 是 Rule 的子概念，用于匹配 Event。
 </tr>
 </table>
 
-上述示例中，匹配Event的`subject`字段后缀为`est`或`xxx`，匹配成功。
+Above, the `subject` field of the Event matches the suffix `est` or `xxx`, matching succeeds.
 
-#### 除外匹配
+#### Anything-But
 
-除外匹配规则用于过滤特定的值或对其他匹配规则取“非”。
+Anything-but is used to filter specific values or take "not" for other matching rules.
 
 <table>
 <tr>
@@ -192,7 +199,8 @@ Pattern 是 Rule 的子概念，用于匹配 Event。
 </tr>
 </table>
 
-上述示例中，匹配Event的`data.name`字段不等于`test`，且`data.scope`字段不等于`100`，匹配失败。
+Above, matching the Event's `data.name` field not equal to `test` 
+and `data.scope` field not equal to `100`, matching fails.
 
 <table>
 <tr>
@@ -232,7 +240,7 @@ Pattern 是 Rule 的子概念，用于匹配 Event。
 </tr>
 </table>
 
-上述示例中，匹配Event的`data.name`字段不等于`test`和`test1`，匹配失败。
+Above, matching the Event's `data.name` field not equal to `test` and `test1`, matching fails.
 
 <table>
 <tr>
@@ -271,11 +279,11 @@ Pattern 是 Rule 的子概念，用于匹配 Event。
 </tr>
 </table>
 
-上述示例中，匹配Event的`data.name`字段前缀不等于`tes`，匹配失败。
+Above, matching the Event's `data.name` field prefix not equal to `tes`, matching fails.
 
-#### 存在匹配
+#### Exists
 
-存在匹配规则用于检查Event中是否存在特定的字段。
+Exists is used to check if a specific field exists in the Event.
 
 <table>
 <tr>
@@ -312,11 +320,11 @@ Pattern 是 Rule 的子概念，用于匹配 Event。
 </tr>
 </table>
 
-上述示例中，匹配Event的`data.name`字段存在，匹配成功。
+Above, matching the Event's `data.name` field exists, matching succeeds.
 
-#### IP地址匹配
+#### CIDR
 
-IP地址匹配规则用于匹配Event中的IP地址字段。
+CIDR is used to match IP addresses in the Event.
 
 <table>
 <tr>
@@ -353,11 +361,11 @@ IP地址匹配规则用于匹配Event中的IP地址字段。
 </tr>
 </table>
 
-上述示例中，匹配Event的`data.source-ip`字段在CIDR范围`10.0.0.0/24`内，匹配成功。
+Above, matching the Event's `data.source-ip` field within the CIDR range `10.0.0.0/24`, matching succeeds.
 
-#### 精确匹配
+#### Exact
 
-精确匹配规则用于匹配Event中字段的具体值。
+Exact is used to match the exact value of a field in the Event.
 
 <table>
 <tr>
@@ -384,7 +392,7 @@ IP地址匹配规则用于匹配Event中的IP地址字段。
     "testSource1"
   ]
 }
-// 等价写法
+// eqivalent to
 {
   "source": "testSource1"
 }
@@ -394,11 +402,11 @@ IP地址匹配规则用于匹配Event中的IP地址字段。
 </tr>
 </table>
 
-上述示例中，匹配Event的`source`字段等于`testSource1`，匹配成功。
+Above, matching the Event's `source` field exactly equal to `testSource1`, matching succeeds.
 
-#### 数值匹配
+#### Numeric
 
-数值匹配规则用于匹配Event中数值类型的字段。
+Numeric is used to match numeric fields in the Event.
 
 <table>
 <tr>
@@ -456,14 +464,18 @@ IP地址匹配规则用于匹配Event中的IP地址字段。
 </tr>
 </table>
 
-上述示例中，匹配同时满足`0 < data.count1 <= 5`，`data.count2 < 10`和`data.count3 = 301.8`的Event，匹配成功。
+Above, matching `0 < data.count1 <= 5`, `data.count2 < 10` and `data.count3 = 301.8`, matching succeeds.
 
-#### 数组匹配
+#### Array
 
-数组匹配规则使用多个值来匹配Event中的字段。
-Event的字段分两种情况：
-- 如果Event字段是数组，只要数组匹配规则的值和字段的值的交集不为空，则匹配成功；
-- 如果Event字段不是数组，只要字段的值在数组匹配规则的值中，则匹配成功。
+Array uses multiple values to match fields in the Event.
+There are two cases for Event fields:
+- If the Event field is an array, 
+  the match succeeds as long as there is any overlap 
+  between the values in the array matching rule and the field's values.
+- If the Event field is not an array, 
+  the match succeeds as long as the field's value is included in the values 
+  specified by the array matching rule.
 
 <table>
 <tr>
@@ -498,11 +510,12 @@ Event的字段分两种情况：
 </tr>
 </table>
 
-上述示例中，匹配Event的`source`字段等于`testSource1`、`testSource2`或`testSource3`，匹配成功。
+Above, matching the Event's `source` field equal to 
+`testSource1`, `testSource2`, or `testSource3`, matching succeeds.
 
-#### 空值匹配
+#### Empty
 
-空值匹配规则用于匹配Event中字段的值为`""`（空字符串）或`null`。
+Empty is used to match fields in the Event that are empty string or `null`.
 
 <table>
 <tr>
@@ -540,11 +553,12 @@ Event的字段分两种情况：
 </tr>
 </table>
 
-上述示例中，匹配Event的`data.value1`字段为空字符串，且`data.value2`字段为`null`，匹配成功。
+Above, matching the Event's `data.value1` field as an empty string
+and `data.value2` field as `null`, matching succeeds.
 
-#### 多模式匹配
+#### Composite
 
-多模式匹配规则允许在一个Pattern中使用多种匹配方式。
+Composite is used to combine multiple matching rules for a field in the Event.
 
 <table>
 <tr>
@@ -591,9 +605,9 @@ Event的字段分两种情况：
 </tr>
 </table>
 
-上述示例中，匹配Event的`source`字段前缀为`testSource1`，
-且`data.source-ip`字段在CIDR范围`10.0.0.0/24`内，
-且`data.name`字段不等于`test`，匹配成功。
+Above, matching the Event's `source` field prefix as `testSource1`,
+the `data.source-ip` field within the CIDR range `10.0.0.0/24`
+and the `data.name` field not equal to `test`, matching succeeds.
 
 <table>
 <tr>
@@ -634,18 +648,20 @@ Event的字段分两种情况：
 </tr>
 </table>
 
-上述示例中，匹配Event的`source`字段前缀为`aa`且后缀为`bb`，或者前缀为`cc`且后缀为`dd`，匹配成功。
-`{}`表示没有匹配规则，匹配失败。
+Above, matching the Event's `source` field with a prefix of `aa` and a suffix of `bb`,
+or a prefix of `cc` and a suffix of `dd`, matching succeeds.
+`{}` indicates no matching rules and will always fail to match.
 
 ## Transform
 
-Transform 是 Rule 的子概念，用于转换 Event。
+Transform is a sub-concept of Rule, 
+used to transform an Event into a different format or structure before sending it to the Target.
 
-### 转换规则
+### Transform Rules
 
-#### 完整事件
+#### Full Event
 
-完整事件转换规则用于将Event的所有字段直接传递到目标。
+Full Event transformation rule is used to pass all fields of the Event directly to the Target.
 
 <table>
 <tr>
@@ -667,7 +683,7 @@ Transform 是 Rule 的子概念，用于转换 Event。
 <td>
 
 ```json
-// target.params为空
+// Note: When target.params is empty, it means the Event is sent directly to the target.
 []
 ```
 
@@ -690,9 +706,9 @@ Transform 是 Rule 的子概念，用于转换 Event。
 </tr>
 </table>
 
-#### 部分事件
+#### Partial Event
 
-部分事件转换规则用于将Event的部分字段传递到目标。
+Partial Event transformation rule is used to pass only specific fields of the Event to the Target.
 
 <table>
 <tr>
@@ -742,9 +758,9 @@ Transform 是 Rule 的子概念，用于转换 Event。
 </tr>
 </table>
 
-#### 常量
+#### Constant
 
-常量转换规则用于将固定值传递到目标。
+Constant transformation rule is used to pass constant values to the Target.
 
 <table>
 <tr>
@@ -787,9 +803,9 @@ Transform 是 Rule 的子概念，用于转换 Event。
 </tr>
 </table>
 
-#### 模版
+#### Template
 
-模版转换规则用于将Event的字段值模版化处理。
+Template transformation rule is used to process the Event's field values using templates.
 
 <table>
 <tr>
@@ -811,7 +827,7 @@ Transform 是 Rule 的子概念，用于转换 Event。
 <td>
 
 ```json
-// 注意：⾃定义变量的声明和使⽤，都会⾃动删除前后空白字符，所以有⼀定的容错能⼒。
+// Note: Custom variable declarations and usage will automatically remove leading and trailing whitespace
 [
   {
     "key": "resKey",
@@ -835,7 +851,8 @@ Transform 是 Rule 的子概念，用于转换 Event。
 </tr>
 </table>
 
-上面是通过模版输出字符串，你也可以通过模版输出JSON对象。
+Above is a simple example of using a template to output a string.
+You can also use templates to output JSON objects.
 
 <table>
 <tr>

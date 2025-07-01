@@ -11,7 +11,7 @@ EventBridge 支持以下功能：
 - **事件总线**：创建事件总线以在源和目标之间路由事件。
 - **事件规则**：定义规则以过滤、转换和发送事件到目标。
 
-进一步探索：
+## 文档
 
 - [快速开始](docs/zh/quick-start.md)
 - [概念](docs/zh/concepts.md)
@@ -20,5 +20,5 @@ EventBridge 支持以下功能：
 - [事件规则](docs/zh/rule.md)
 - [实体关系图](docs/zh/erd.md)
 - [gRPC](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto)
-和 [HTTP](https://github.com/tianping526/apis/blob/main/openapi.yaml)
-接口文档
+  和 [HTTP](https://github.com/tianping526/apis/blob/main/openapi.yaml)
+  接口文档

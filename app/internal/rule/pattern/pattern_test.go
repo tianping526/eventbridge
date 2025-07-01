@@ -22,7 +22,7 @@ func TestPattern(t *testing.T) {
 		pattern string
 		events  []eventAndMatchRes
 	}{
-		// specific value
+		// Exact
 		{
 			pattern: `
 {
