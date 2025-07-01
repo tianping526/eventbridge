@@ -101,16 +101,18 @@ networks:
 - `redis`：Redis 服务，端口 6379。
 - `mq-proxy`：RocketMQ Proxy 服务，端口 8081。
 - `create-default-data-bus`：创建 Default Bus 的 Topic 并配置订阅组。
-  - 为 Default Bus 创建了四个 Topic：
-    - `EBInterBusDefault`：用于接收实时 Event 的 Topic。
-    - `EBInterDelayBusDefault`：用于接收延迟 Event 的 Topic，额外添加了 `message.type=DELAY` 的属性。
-    - `EBInterTargetExpDecayBusDefault`：用于存放需要进行指数衰减策略重试的 Event 的 Topic。
-    - `EBInterTargetBackoffBusDefault`：用于存放需要进行退避策略重试的 Event 的 Topic。
-  - 为每个 Topic 创建了对应的订阅组：
-    - 订阅组的名字是[{host}{port}{topic}](https://github.com/tianping526/eventbridge/blob/main/app/job/internal/data/rocketmq.go#L101)的格式。
-    - `EBInterTargetExpDecayBusDefault` 订阅组的重试次数设置为 176 次，如果设置错误，Job 将无法正确处理指数衰减策略的重试。
-    - `EBInterTargetBackoffBusDefault` 订阅组的重试次数设置为 3 次，如果设置错误，Job 将无法正确处理退避策略的重试。
-    - 其他订阅组的重试次数设置为 3 次，代表 Event 在 Job 内部流转失败时的重试次数。
+    - 为 Default Bus 创建了四个 Topic：
+        - `EBInterBusDefault`：用于接收实时 Event 的 Topic。
+        - `EBInterDelayBusDefault`：用于接收延迟 Event 的 Topic，额外添加了 `message.type=DELAY` 的属性。
+        - `EBInterTargetExpDecayBusDefault`：用于存放需要进行指数衰减策略重试的 Event 的 Topic。
+        - `EBInterTargetBackoffBusDefault`：用于存放需要进行退避策略重试的 Event 的 Topic。
+    - 为每个 Topic 创建了对应的订阅组：
+        -
+        订阅组的名字是[{host}{port}{topic}](https://github.com/tianping526/eventbridge/blob/main/app/job/internal/data/rocketmq.go#L101)
+        的格式。
+        - `EBInterTargetExpDecayBusDefault` 订阅组的重试次数设置为 176 次，如果设置错误，Job 将无法正确处理指数衰减策略的重试。
+        - `EBInterTargetBackoffBusDefault` 订阅组的重试次数设置为 3 次，如果设置错误，Job 将无法正确处理退避策略的重试。
+        - 其他订阅组的重试次数设置为 3 次，代表 Event 在 Job 内部流转失败时的重试次数。
 
 启动Docker Compose：
 
@@ -296,7 +298,7 @@ curl --location '127.0.0.1:8011/v1/eventbridge/bus' \
 ```
 
 如果 Bus 的工作模式是顺序处理（`BUS_WORK_MODE_ORDERLY`），则需要为其创建顺序处理的 Topic。
-如下所示， `EBInterBusOrderly`、`EBInterTargetExpDecayBusOrderly` 
+如下所示， `EBInterBusOrderly`、`EBInterTargetExpDecayBusOrderly`
 和 `EBInterTargetBackoffBusOrderly` 额外添加了 `-a +message.type=FIFO -o true` 的参数。
 如果不添加这些参数，RocketMQ 会将这些 Topic 视为普通 Topic，Event 的处理将不再是顺序的。
 

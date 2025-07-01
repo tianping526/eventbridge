@@ -92,7 +92,8 @@ Target 是 Rule 的子概念，包含 Event 的转换规则和发送目标。
 ```
 
 上面定义了一个使用 HTTP POST 请求，将 `{"code":"10188:{$.data.a}"}` 发送到 `http://127.0.0.1:10188/target/event`
-的 Target。`Params` 定义了将 Event 转换成 `HTTPDispatcher` 参数的细节，`RetryStrategy` 的指定则会覆盖 Event 中 `RetryStrategy`。
+的 Target。`Params` 定义了将 Event 转换成 `HTTPDispatcher` 参数的细节，`RetryStrategy` 的指定则会覆盖 Event 中
+`RetryStrategy`。
 
 ##### Dispatcher
 

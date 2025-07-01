@@ -101,16 +101,21 @@ There is some important information to focus on:
 - `redis`: Redis service, port 6379.
 - `mq-proxy`: RocketMQ Proxy service, port 8081.
 - `create-default-data-bus`: Creates Topics and configures subscription groups for the Default Bus.
-  - Four Topics are created for the Default Bus:
-    - `EBInterBusDefault`: Topic for receiving direct Events.
-    - `EBInterDelayBusDefault`: Topic for receiving delayed Events, with an additional property `message.type=DELAY`.
-    - `EBInterTargetExpDecayBusDefault`: Topic for storing Events that require exponential decay retry strategy.
-    - `EBInterTargetBackoffBusDefault`: Topic for storing Events that require backoff retry strategy.
-  - Corresponding subscription groups are created for each Topic:
-    - The subscription group name follows the format [{host}{port}{topic}](https://github.com/tianping526/eventbridge/blob/main/app/job/internal/data/rocketmq.go#L101)
-    - The retry count for the `EBInterTargetExpDecayBusDefault` subscription group is set to 176. If set incorrectly, the Job will not handle exponential decay retries correctly.
-    - The retry count for the `EBInterTargetBackoffBusDefault` subscription group is set to 3. If set incorrectly, the Job will not handle backoff retries correctly.
-    - The retry count for other subscription groups is set to 3, representing the retry count for Event flow failures within the Job.
+    - Four Topics are created for the Default Bus:
+        - `EBInterBusDefault`: Topic for receiving direct Events.
+        - `EBInterDelayBusDefault`: Topic for receiving delayed Events, with an additional property
+          `message.type=DELAY`.
+        - `EBInterTargetExpDecayBusDefault`: Topic for storing Events that require exponential decay retry strategy.
+        - `EBInterTargetBackoffBusDefault`: Topic for storing Events that require backoff retry strategy.
+    - Corresponding subscription groups are created for each Topic:
+        - The subscription group name follows the
+          format [{host}{port}{topic}](https://github.com/tianping526/eventbridge/blob/main/app/job/internal/data/rocketmq.go#L101)
+        - The retry count for the `EBInterTargetExpDecayBusDefault` subscription group is set to 176. If set
+          incorrectly, the Job will not handle exponential decay retries correctly.
+        - The retry count for the `EBInterTargetBackoffBusDefault` subscription group is set to 3. If set incorrectly,
+          the Job will not handle backoff retries correctly.
+        - The retry count for other subscription groups is set to 3, representing the retry count for Event flow
+          failures within the Job.
 
 Start Docker Compose:
 
@@ -136,7 +141,7 @@ eventbridge-mq-proxy-1                  apache/rocketmq:5.3.1   "./docker-entryp
 eventbridge-redis-1                     redis                   "docker-entrypoint.s…"   redis                     44 seconds ago   Up 43 seconds              6379/tcp
 ```
 
-Successful startup of the `eventbridge-create-default-data-bus-1` container with status `Exited (0)` 
+Successful startup of the `eventbridge-create-default-data-bus-1` container with status `Exited (0)`
 indicates that the Default Bus's Topics and subscription groups were created successfully.
 
 #### Start Service
@@ -147,7 +152,7 @@ indicates that the Default Bus's Topics and subscription groups were created suc
 docker run -d --network eventbridge -p 8011:8011 -p 9011:9011 -v $(pwd)/service.yaml:/data/conf/service.yaml linktin/eb-service:1.0.0
 ```
 
-Below is the content of `service.yaml`. 
+Below is the content of `service.yaml`.
 You can also view the [service configuration example](../../app/service/configs/service.yaml)
 and [schema](../../app/service/internal/conf/conf.proto).
 
@@ -244,9 +249,10 @@ Successful startup of the Job container with status `Up` indicates that the Job 
 
 ### Create Default Bus
 
-However, if you attempt to create a Bus named `Default`, 
+However, if you attempt to create a Bus named `Default`,
 it will fail because EventBridge automatically creates a Bus named `Default` upon startup.
-You can view the definitions for creating a Bus in the [HTTP Create Bus](https://github.com/tianping526/apis/blob/main/openapi.yaml#L10)
+You can view the definitions for creating a Bus in
+the [HTTP Create Bus](https://github.com/tianping526/apis/blob/main/openapi.yaml#L10)
 and [gRPC Create Bus](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto#L47).
 
 ```bash
@@ -263,7 +269,8 @@ curl --location '127.0.0.1:8011/v1/eventbridge/bus' \
 
 As you can see, the error message indicates that the Bus name `Default` already exists.
 After creating the Default Bus, you can view its information.
-The definition for viewing Bus information can be found in the [HTTP List Buses](https://github.com/tianping526/apis/blob/main/openapi.yaml#L59)
+The definition for viewing Bus information can be found in
+the [HTTP List Buses](https://github.com/tianping526/apis/blob/main/openapi.yaml#L59)
 and [gRPC List Buses](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto#L43).
 
 ```bash
@@ -275,14 +282,17 @@ curl --location '127.0.0.1:8011/v1/eventbridge/buses?prefix=Default' \
 # {"buses":[{"name":"Default", "mode":"BUS_WORK_MODE_CONCURRENTLY", "sourceTopic":"EBInterBusDefault", "sourceDelayTopic":"EBInterDelayBusDefault", "targetExpDecayTopic":"EBInterTargetExpDecayBusDefault", "targetBackoffTopic":"EBInterTargetBackoffBusDefault"}], "nextToken":"0"}
 ```
 
-The `source_topic`, `source_delay_topic`, `target_exp_decay_topic`, and `target_backoff_topic` of the Default Bus are 
-`EBInterBusDefault`, `EBInterDelayBusDefault`, `EBInterTargetExpDecayBusDefault`, and `EBInterTargetBackoffBusDefault`, respectively.
-For more details about the purpose of these four topics, refer to the [Architecture](architecture.md#job) and [Entity Relationship Diagram (ERD)](erd.md#bus).
+The `source_topic`, `source_delay_topic`, `target_exp_decay_topic`, and `target_backoff_topic` of the Default Bus are
+`EBInterBusDefault`, `EBInterDelayBusDefault`, `EBInterTargetExpDecayBusDefault`, and `EBInterTargetBackoffBusDefault`,
+respectively.
+For more details about the purpose of these four topics, refer to the [Architecture](architecture.md#job)
+and [Entity Relationship Diagram (ERD)](erd.md#bus).
 
 ### Create an Orderly Bus
 
 We can create other Buses, such as `Orderly`, with a working mode of `BUS_WORK_MODE_ORDERLY`.
-You can view the definitions for creating a Bus in the [HTTP Create Bus](https://github.com/tianping526/apis/blob/main/openapi.yaml#L10)
+You can view the definitions for creating a Bus in
+the [HTTP Create Bus](https://github.com/tianping526/apis/blob/main/openapi.yaml#L10)
 and [gRPC Create Bus](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto#L47)
 
 ```bash
@@ -298,9 +308,9 @@ curl --location '127.0.0.1:8011/v1/eventbridge/bus' \
 ```
 
 If the Bus's working mode is `BUS_WORK_MODE_ORDERLY`, you need to create orderly processing Topics for it.
-As shown below, the topics `EBInterBusOrderly`, `EBInterTargetExpDecayBusOrderly`, and `EBInterTargetBackoffBusOrderly` 
+As shown below, the topics `EBInterBusOrderly`, `EBInterTargetExpDecayBusOrderly`, and `EBInterTargetBackoffBusOrderly`
 require the additional parameters `-a +message.type=FIFO -o true`.
-Without these parameters, RocketMQ will treat these topics as regular topics, 
+Without these parameters, RocketMQ will treat these topics as regular topics,
 and event processing will no longer be sequential.
 
 ```bash
@@ -312,7 +322,8 @@ and event processing will no longer be sequential.
 
 ## Create Schema
 
-The definition for creating a Schema can be found in the [HTTP Create Schema](https://github.com/tianping526/apis/blob/main/openapi.yaml#L280)
+The definition for creating a Schema can be found in
+the [HTTP Create Schema](https://github.com/tianping526/apis/blob/main/openapi.yaml#L280)
 and [gRPC Create Schema](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto#L24).
 
 ```bash
@@ -332,7 +343,8 @@ Such an Event has a property `a` of type `string`, and it will be sent to the De
 
 ## Create Rule
 
-The definition for creating a Rule can be found in the [HTTP Create Rule](https://github.com/tianping526/apis/blob/main/openapi.yaml#L152)
+The definition for creating a Rule can be found in
+the [HTTP Create Rule](https://github.com/tianping526/apis/blob/main/openapi.yaml#L152)
 and [gRPC Create Rule](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto#L63).
 
 ```bash
@@ -372,12 +384,12 @@ curl --location '127.0.0.1:8011/v1/eventbridge/rule' \
 }'
 ```
 
-We have created a Rule named `TestRule` on the Default Bus. 
+We have created a Rule named `TestRule` on the Default Bus.
 This Rule matches Events with the `source` prefix `testSource1`
-and sends the Event via HTTP POST method to `http://192.168.30.143:10188/target/event` 
+and sends the Event via HTTP POST method to `http://192.168.30.143:10188/target/event`
 with the HTTP Body content being `{"code":"10188:{$.data.a}"}`.
 
-To successfully receive the Event sent by `TestRule`, 
+To successfully receive the Event sent by `TestRule`,
 we need to start the following HTTP server on the host `192.168.30.143`
 to listen for incoming requests.
 
@@ -410,7 +422,8 @@ func main() {
 
 ## Send Event
 
-The definition for sending an Event can be found in the [HTTP Post Event](https://github.com/tianping526/apis/blob/main/openapi.yaml#L127)
+The definition for sending an Event can be found in
+the [HTTP Post Event](https://github.com/tianping526/apis/blob/main/openapi.yaml#L127)
 and [gRPC Post Event](https://github.com/tianping526/apis/blob/main/api/eventbridge/service/v1/eventbridge_service_v1.proto#L12).
 
 ```bash

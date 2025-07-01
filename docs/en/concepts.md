@@ -2,7 +2,7 @@
 
 ## EDA - Event-Driven Architecture
 
-Event-Driven Architecture (EDA) consists of three main components: 
+Event-Driven Architecture (EDA) consists of three main components:
 event generators, event routers, and event consumers.
 Event generators publish events to routers, which filter and push events to consumers.
 The generator and consumer services are decoupled, allowing them to scale, update, and deploy independently.
@@ -17,7 +17,7 @@ Event is used to represent state changes in a distributed system.
 The Event data structure follows a schema that can be indexed in the Schema by its `source` and `type`.
 Event contains the following fields:
 
-- `id`: A unique identifier for the Event within its Source. If not specified, 
+- `id`: A unique identifier for the Event within its Source. If not specified,
   EventBridge will automatically generate one.
 - `source`: The source of the Event, typically the name of a service or application.
 - `subject`: Optional, a finer-grained context identifier within the Source.
@@ -27,7 +27,7 @@ Event contains the following fields:
 - `datacontenttype`: Only supports `application/json`, indicating the content type of the data.
 
 When sending an Event to EventBridge, you can specify `pub_time` and `retry_strategy`.
-`pub_time` determines when the Event is sent to the Target, 
+`pub_time` determines when the Event is sent to the Target,
 and `retry_strategy` determines the retry policy in case of failure.
 
 ### Source
@@ -48,7 +48,7 @@ Schema contains the following fields:
 
 ### Bus
 
-Bus is a transit station for storing and transmitting events, 
+Bus is a transit station for storing and transmitting events,
 with complete isolation of resources between different Buses.
 Multiple Buses can exist, and EventBridge comes with a Default Bus.
 Bus can work in either concurrent or ordered mode; in ordered mode, Events are processed in the order they are sent.
@@ -98,7 +98,8 @@ Example:
 }
 ```
 
-Below defines a Target that uses an HTTP POST request to send `{"code":"10188:{$.data.a}"}` to `http://127.0.0.1:10188/target/event`
+Below defines a Target that uses an HTTP POST request to send `{"code":"10188:{$.data.a}"}` to
+`http://127.0.0.1:10188/target/event`
 The `Params` define the details of transforming the Event into `HTTPDispatcher` parameters,
 and the specified `RetryStrategy` will override the `RetryStrategy` in the Event.
 
@@ -150,5 +151,5 @@ Here is the DispatcherSchema for `HTTPDispatcher`:
 ```
 
 Below is the description of the `HTTPDispatcher` parameters structure in the DispatcherSchema,
-which includes four fields: `method`, `url`, `header`, and `body` 
+which includes four fields: `method`, `url`, `header`, and `body`
 where `method` and `url` are required fields.

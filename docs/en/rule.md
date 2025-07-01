@@ -6,16 +6,16 @@ Pattern is a sub-concept of Rule, used to match events that meet specific condit
 
 ### Notes
 
-- Pattern is matched character by character, case-sensitive, 
+- Pattern is matched character by character, case-sensitive,
   and no processing is performed on the strings during matching.
-- Values to be matched follow JSON rules: strings are quoted, 
+- Values to be matched follow JSON rules: strings are quoted,
   numbers, `true`, `false`, and `null` are not quoted.
-- Pattern matches multiple specific fields of an Event, 
+- Pattern matches multiple specific fields of an Event,
   where the fields to be matched are combined with "AND" logic,
-  meaning all participating fields must match successfully for 
+  meaning all participating fields must match successfully for
   the Pattern to be considered a match.
 
-> The match succeeds only if the `data.name` field is not equal to `test` 
+> The match succeeds only if the `data.name` field is not equal to `test`
 > and the `data.scope` field is not equal to 100.
 
 ```json
@@ -35,7 +35,7 @@ Pattern is a sub-concept of Rule, used to match events that meet specific condit
 }
 ```
 
-- Pattern matches specific fields of an event. 
+- Pattern matches specific fields of an event.
   For multiple matching rules on the same field, a logical "OR" is applied,
   meaning if any one of the matching rules succeeds, the Pattern is considered a match.
 
@@ -54,8 +54,8 @@ Pattern is a sub-concept of Rule, used to match events that meet specific condit
 }
 ```
 
-- Pattern matches specific fields of an event. 
-  Multiple matching rules for the same field can also use "AND" logic, 
+- Pattern matches specific fields of an event.
+  Multiple matching rules for the same field can also use "AND" logic,
   meaning all matching rules must succeed for the pattern to be considered a match.
 
 > The match succeeds only if the `source` field starts with `aa` and ends with `bb`.
@@ -199,7 +199,7 @@ Anything-but is used to filter specific values or take "not" for other matching 
 </tr>
 </table>
 
-Above, matching the Event's `data.name` field not equal to `test` 
+Above, matching the Event's `data.name` field not equal to `test`
 and `data.scope` field not equal to `100`, matching fails.
 
 <table>
@@ -470,11 +470,12 @@ Above, matching `0 < data.count1 <= 5`, `data.count2 < 10` and `data.count3 = 30
 
 Array uses multiple values to match fields in the Event.
 There are two cases for Event fields:
-- If the Event field is an array, 
-  the match succeeds as long as there is any overlap 
+
+- If the Event field is an array,
+  the match succeeds as long as there is any overlap
   between the values in the array matching rule and the field's values.
-- If the Event field is not an array, 
-  the match succeeds as long as the field's value is included in the values 
+- If the Event field is not an array,
+  the match succeeds as long as the field's value is included in the values
   specified by the array matching rule.
 
 <table>
@@ -510,7 +511,7 @@ There are two cases for Event fields:
 </tr>
 </table>
 
-Above, matching the Event's `source` field equal to 
+Above, matching the Event's `source` field equal to
 `testSource1`, `testSource2`, or `testSource3`, matching succeeds.
 
 #### Empty
@@ -654,7 +655,7 @@ or a prefix of `cc` and a suffix of `dd`, matching succeeds.
 
 ## Transform
 
-Transform is a sub-concept of Rule, 
+Transform is a sub-concept of Rule,
 used to transform an Event into a different format or structure before sending it to the Target.
 
 ### Transform Rules
@@ -750,7 +751,10 @@ Partial Event transformation rule is used to pass only specific fields of the Ev
 ```json
 {
   "resKey": "test1",
-  "resKey1": ["10.0.0.123", "10.0.0.124"]
+  "resKey1": [
+    "10.0.0.123",
+    "10.0.0.124"
+  ]
 }
 ```
 
@@ -790,6 +794,7 @@ Constant transformation rule is used to pass constant values to the Target.
   }
 ]
 ```
+
 </td>
 <td>
 

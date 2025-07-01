@@ -6,7 +6,7 @@
 
 ## Schema
 
-`source` + `type` indicates a unique Schema, 
+`source` + `type` indicates a unique Schema,
 where `spec` is the serialized JSON Schema that describes the structure of an Event.
 `bus_name` is the name of the Bus to which the Schema-validated Event will be sent.
 `version` is the version number of the Schema, which increments each time the Schema changes.

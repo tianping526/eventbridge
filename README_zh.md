@@ -7,6 +7,7 @@ EventBridge 是一个允许您通过事件连接不同的服务和应用程序�
 ![eventbridge.svg](docs/zh/img/eventbridge.svg)
 
 EventBridge 支持以下功能：
+
 - **Schema 管理**：定义和管理事件的 Schema。
 - **事件总线**：创建事件总线以在源和目标之间路由事件。
 - **事件规则**：定义规则以过滤、转换和发送事件到目标。
