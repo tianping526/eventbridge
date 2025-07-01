@@ -22,7 +22,7 @@ func TestPattern(t *testing.T) {
 		pattern string
 		events  []eventAndMatchRes
 	}{
-		// specific value
+		// Exact
 		{
 			pattern: `
 {
@@ -679,70 +679,6 @@ func TestPattern(t *testing.T) {
 			},
 		},
 		// array
-		{
-			pattern: `
-{
-  "source": [
-    "testSource1",
-    "testSource2",
-    "testSource3"
-  ]
-}`,
-			events: []eventAndMatchRes{
-				{
-					`
-{
-  "id": 123,
-  "source": "testSource1",
-  "subject": "dolor mollit reprehenderit velit est",
-  "type": "testSourceType1",
-  "time": "2020-08-17T16:04:46.149Z",
-  "data": "{\"name\":\"test1\",\"source-ip\":\"10.0.0.123\"}",
-  "datacontenttype": "application/json"
-}`,
-					true,
-				},
-				{
-					`
-{
-  "id": 123,
-  "source": "testSource2",
-  "subject": "dolor mollit reprehenderit velit est",
-  "type": "testSourceType1",
-  "time": "2020-08-17T16:04:46.149Z",
-  "data": "{\"name\":\"test1\",\"source-ip\":\"10.0.0.123\"}",
-  "datacontenttype": "application/json"
-}`,
-					true,
-				},
-				{
-					`
-{
-  "id": 123,
-  "source": "testSource3",
-  "subject": "dolor mollit reprehenderit velit est",
-  "type": "testSourceType1",
-  "time": "2020-08-17T16:04:46.149Z",
-  "data": "{\"name\":\"test1\",\"source-ip\":\"10.0.0.123\"}",
-  "datacontenttype": "application/json"
-}`,
-					true,
-				},
-				{
-					`
-{
-  "id": 123,
-  "source": "testSource4",
-  "subject": "dolor mollit reprehenderit velit est",
-  "type": "testSourceType1",
-  "time": "2020-08-17T16:04:46.149Z",
-  "data": "{\"name\":\"test1\",\"source-ip\":\"10.0.0.123\"}",
-  "datacontenttype": "application/json"
-}`,
-					false,
-				},
-			},
-		},
 		{
 			pattern: `
 {

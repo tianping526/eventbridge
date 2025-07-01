@@ -7,15 +7,11 @@ services:
       - "5432:5432"
     depends_on:
       - redis
-    networks:
-      - eventbridge
 
   redis:
     image: redis
     ports:
       - "6379:6379"
-    networks:
-      - eventbridge
 
   mq-namesrv:
     restart: always
@@ -47,7 +43,7 @@ services:
       - JAVA_OPT_EXT=-server -Xms256m -Xmx256m -Xmn128m
     command: sh mqproxy
 
-  create-orderly-data-bus:
+  create-default-orderly-data-bus:
     restart: on-failure
     image: apache/rocketmq:5.3.1
     depends_on:
@@ -59,26 +55,28 @@ services:
       - -c
       - |
         set -e
-        sh ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success              
-        sh ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterDelayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=DELAY | tee /dev/stderr | grep success        
-        sh ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
-        sh ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success 
         
-        sh ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
-        sh ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterDelayBusDefault -c DefaultCluster -r 8 -w 8 -a +message.type=DELAY | tee /dev/stderr | grep success
-        sh ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
-        sh ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
+        # Create Default data bus
+        until ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success; do
+        echo "Retrying updateTopic for EBInterBusDefault..."
+        sleep 1
+        done
+        
+        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterDelayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=DELAY | tee /dev/stderr | grep success        
+        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
+        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success 
+        
+        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
+        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterDelayBusDefault -c DefaultCluster -r 8 -w 8 -a +message.type=DELAY | tee /dev/stderr | grep success
+        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
+        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
 
-        sh ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterBusOrderly -r 3 -o true | tee /dev/stderr | grep success                          
-        sh ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterDelayBusOrderly -r 3 | tee /dev/stderr | grep success                     
-        sh ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterTargetExpDecayBusOrderly -r 176 -o true | tee /dev/stderr | grep success          
-        sh ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterTargetBackoffBusOrderly -r 3 -o true | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterBusOrderly -r 3 -o true | tee /dev/stderr | grep success                          
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterDelayBusOrderly -r 3 | tee /dev/stderr | grep success                     
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterTargetExpDecayBusOrderly -r 176 -o true | tee /dev/stderr | grep success          
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterTargetBackoffBusOrderly -r 3 -o true | tee /dev/stderr | grep success
 
-        sh ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterBusDefault -r 3 | tee /dev/stderr | grep success
-        sh ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterDelayBusDefault -r 3 | tee /dev/stderr | grep success
-        sh ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterTargetExpDecayBusDefault -r 176 | tee /dev/stderr | grep success
-        sh ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterTargetBackoffBusDefault -r 3 | tee /dev/stderr | grep success
-networks:
-  eventbridge:
-    name: eventbridge
-    driver: bridge
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterBusDefault -r 3 | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterDelayBusDefault -r 3 | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterTargetExpDecayBusDefault -r 176 | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g 1270018081EBInterTargetBackoffBusDefault -r 3 | tee /dev/stderr | grep success
