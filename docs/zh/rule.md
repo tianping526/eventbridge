@@ -384,7 +384,11 @@ IP地址匹配规则用于匹配Event中的IP地址字段。
     "testSource1"
   ]
 }
-// 等价写法
+```
+
+等价写法:
+
+```json
 {
   "source": "testSource1"
 }
@@ -667,8 +671,9 @@ Transform 是 Rule 的子概念，用于转换 Event。
 </td>
 <td>
 
+> target.params 为空时，表示将完整事件传递到目标。
+
 ```json
-// target.params为空
 []
 ```
 
@@ -815,8 +820,9 @@ Transform 是 Rule 的子概念，用于转换 Event。
 </td>
 <td>
 
+> 注意：⾃定义变量的声明和使⽤，都会⾃动删除前后空白字符，所以有⼀定的容错能⼒。
+
 ```json
-// 注意：⾃定义变量的声明和使⽤，都会⾃动删除前后空白字符，所以有⼀定的容错能⼒。
 [
   {
     "key": "resKey",

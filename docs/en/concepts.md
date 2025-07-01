@@ -2,7 +2,7 @@
 
 ## EDA - Event-Driven Architecture
 
-Event-Driven Architecture (EDA) consists of three main components:
+Event-Driven Architecture (EDA) consists of three main parts:
 event generators, event routers, and event consumers.
 Event generators publish events to routers, which filter and push events to consumers.
 The generator and consumer services are decoupled, allowing them to scale, update, and deploy independently.

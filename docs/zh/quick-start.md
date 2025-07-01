@@ -47,7 +47,7 @@ services:
       - eventbridge
 
   mq-proxy:
-    restart[img](img): always
+    restart: always
     image: apache/rocketmq:5.3.1
     depends_on:
       - mq-namesrv

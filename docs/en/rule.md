@@ -392,7 +392,11 @@ Exact is used to match the exact value of a field in the Event.
     "testSource1"
   ]
 }
-// eqivalent to
+```
+
+eqivalent to:
+
+```json
 {
   "source": "testSource1"
 }
@@ -683,8 +687,9 @@ Full Event transformation rule is used to pass all fields of the Event directly 
 </td>
 <td>
 
+> Note: When target.params is empty, it means the Event is sent directly to the target.
+
 ```json
-// Note: When target.params is empty, it means the Event is sent directly to the target.
 []
 ```
 
@@ -831,8 +836,9 @@ Template transformation rule is used to process the Event's field values using t
 </td>
 <td>
 
+> Note: Custom variable declarations and usage will automatically remove leading and trailing whitespace
+
 ```json
-// Note: Custom variable declarations and usage will automatically remove leading and trailing whitespace
 [
   {
     "key": "resKey",
