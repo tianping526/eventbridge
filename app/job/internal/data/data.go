@@ -16,6 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql/schema"
 	kz "github.com/go-kratos/kratos/contrib/log/zap/v2"
 	"github.com/go-kratos/kratos/v2/config"
+	"github.com/go-kratos/kratos/v2/config/env"
 	"github.com/go-kratos/kratos/v2/config/file"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/metrics"
@@ -307,6 +308,7 @@ func NewConfig(ai *conf.AppInfo) (config.Config, func(), error) {
 	fc := config.New(
 		config.WithSource(
 			file.NewSource(ai.FlagConf),
+			env.NewSource(),
 		),
 	)
 	if err := fc.Load(); err != nil {

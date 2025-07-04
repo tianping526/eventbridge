@@ -310,6 +310,7 @@ curl --location '127.0.0.1:8011/v1/eventbridge/bus' \
 If the Bus's working mode is `BUS_WORK_MODE_ORDERLY`, you need to create orderly processing Topics for it.
 As shown below, the topics `EBInterBusOrderly`, `EBInterTargetExpDecayBusOrderly`, and `EBInterTargetBackoffBusOrderly`
 require the additional parameters `-a +message.type=FIFO -o true`.
+Their corresponding consumer groups also require the `-o true` parameter.
 Without these parameters, RocketMQ will treat these topics as regular topics,
 and event processing will no longer be sequential.
 
@@ -318,6 +319,11 @@ and event processing will no longer be sequential.
 ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterDelayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=DELAY | tee /dev/stderr | grep success        
 ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
 ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
+
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterBusOrderly -r 3 -o true | tee /dev/stderr | grep success                          
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterDelayBusOrderly -r 3 | tee /dev/stderr | grep success                     
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterTargetExpDecayBusOrderly -r 176 -o true | tee /dev/stderr | grep success          
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterTargetBackoffBusOrderly -r 3 -o true | tee /dev/stderr | grep success
 ```
 
 ## Create Schema

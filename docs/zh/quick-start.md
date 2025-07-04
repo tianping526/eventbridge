@@ -299,7 +299,8 @@ curl --location '127.0.0.1:8011/v1/eventbridge/bus' \
 
 如果 Bus 的工作模式是顺序处理（`BUS_WORK_MODE_ORDERLY`），则需要为其创建顺序处理的 Topic。
 如下所示， `EBInterBusOrderly`、`EBInterTargetExpDecayBusOrderly`
-和 `EBInterTargetBackoffBusOrderly` 额外添加了 `-a +message.type=FIFO -o true` 的参数。
+和 `EBInterTargetBackoffBusOrderly` 额外添加了 `-a +message.type=FIFO -o true` 的参数，
+它们的消费组额外添加了 `-o true` 的参数。
 如果不添加这些参数，RocketMQ 会将这些 Topic 视为普通 Topic，Event 的处理将不再是顺序的。
 
 ```bash
@@ -307,6 +308,11 @@ curl --location '127.0.0.1:8011/v1/eventbridge/bus' \
 ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterDelayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=DELAY | tee /dev/stderr | grep success        
 ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
 ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
+
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterBusOrderly -r 3 -o true | tee /dev/stderr | grep success                          
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterDelayBusOrderly -r 3 | tee /dev/stderr | grep success                     
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterTargetExpDecayBusOrderly -r 176 -o true | tee /dev/stderr | grep success          
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterTargetBackoffBusOrderly -r 3 -o true | tee /dev/stderr | grep success
 ```
 
 ## 创建 Schema
