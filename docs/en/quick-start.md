@@ -131,15 +131,13 @@ After starting, you can check the status of the containers:
 docker-compose -f docker-compose.yaml ps -a
 ```
 
-```bash
-NAME                                    IMAGE                   COMMAND                  SERVICE                   CREATED          STATUS                     PORTS
-eventbridge-create-default-data-bus-1   apache/rocketmq:5.3.1   "./docker-entrypoint…"   create-default-data-bus   43 seconds ago   Exited (0) 3 seconds ago   
-eventbridge-db-1                        postgres                "docker-entrypoint.s…"   db                        43 seconds ago   Up 43 seconds              5432/tcp
-eventbridge-mq-broker-1                 apache/rocketmq:5.3.1   "./docker-entrypoint…"   mq-broker                 44 seconds ago   Up 43 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
-eventbridge-mq-namesrv-1                apache/rocketmq:5.3.1   "./docker-entrypoint…"   mq-namesrv                44 seconds ago   Up 43 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
-eventbridge-mq-proxy-1                  apache/rocketmq:5.3.1   "./docker-entrypoint…"   mq-proxy                  43 seconds ago   Up 31 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
-eventbridge-redis-1                     redis                   "docker-entrypoint.s…"   redis                     44 seconds ago   Up 43 seconds              6379/tcp
-```
+    NAME                                    IMAGE                   COMMAND                  SERVICE                   CREATED          STATUS                     PORTS
+    eventbridge-create-default-data-bus-1   apache/rocketmq:5.3.1   "./docker-entrypoint…"   create-default-data-bus   43 seconds ago   Exited (0) 3 seconds ago   
+    eventbridge-db-1                        postgres                "docker-entrypoint.s…"   db                        43 seconds ago   Up 43 seconds              5432/tcp
+    eventbridge-mq-broker-1                 apache/rocketmq:5.3.1   "./docker-entrypoint…"   mq-broker                 44 seconds ago   Up 43 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
+    eventbridge-mq-namesrv-1                apache/rocketmq:5.3.1   "./docker-entrypoint…"   mq-namesrv                44 seconds ago   Up 43 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
+    eventbridge-mq-proxy-1                  apache/rocketmq:5.3.1   "./docker-entrypoint…"   mq-proxy                  43 seconds ago   Up 31 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
+    eventbridge-redis-1                     redis                   "docker-entrypoint.s…"   redis                     44 seconds ago   Up 43 seconds              6379/tcp
 
 Successful startup of the `eventbridge-create-default-data-bus-1` container with status `Exited (0)`
 indicates that the Default Bus's Topics and subscription groups were created successfully.
@@ -189,10 +187,8 @@ After starting, you can check the status of the Service container:
 docker ps -a
 ```
 
-```bash
-CONTAINER ID   IMAGE                      COMMAND                  CREATED         STATUS                     PORTS                                            NAMES
-0cfa5a79afb8   linktin/eb-service:1.0.0   "./server -conf /dat…"   5 seconds ago   Up 4 seconds               0.0.0.0:8011->8011/tcp, 0.0.0.0:9011->9011/tcp   sweet_yalow
-```
+    CONTAINER ID   IMAGE                      COMMAND                  CREATED         STATUS                     PORTS                                            NAMES
+    0cfa5a79afb8   linktin/eb-service:1.0.0   "./server -conf /dat…"   5 seconds ago   Up 4 seconds               0.0.0.0:8011->8011/tcp, 0.0.0.0:9011->9011/tcp   sweet_yalow
 
 Successful startup of the Service container with status `Up` indicates that the Service is running correctly.
 
@@ -236,12 +232,77 @@ After starting, you can check the status of the Job container:
 docker ps -a
 ```
 
-```bash
-CONTAINER ID   IMAGE                      COMMAND                  CREATED          STATUS                      PORTS                                            NAMES
-b7c280bfde43   linktin/eb-job:1.0.0       "./server -conf /dat…"   5 seconds ago    Up 5 seconds                                                                 happy_hugle
-```
+    CONTAINER ID   IMAGE                      COMMAND                  CREATED          STATUS                      PORTS                                            NAMES
+    b7c280bfde43   linktin/eb-job:1.0.0       "./server -conf /dat…"   5 seconds ago    Up 5 seconds                                                                 happy_hugle
 
 Successful startup of the Job container with status `Up` indicates that the Job is running correctly.
+
+</details>
+
+<details>
+<summary><span style="font-size:1.5em; font-weight:bold;">Deploying with Helm chart</span></summary>
+
+> The Helm chart used in the demonstration launches a highly available EventBridge cluster, 
+> which includes Service, Job, Postgres, Redis, and RocketMQ.
+
+#### Add Helm repository
+
+```bash
+helm repo add tianping526 https://tianping526.github.io/helm-charts
+helm repo update
+```
+
+#### Install EventBridge
+
+```bash
+helm install eventbridge tianping526/eventbridge --namespace eventbridge --create-namespace
+```
+
+#### Check the status of the EventBridge cluster
+
+```bash
+kubectl -n eventbridge get pod
+```
+
+    NAME                                READY   STATUS    RESTARTS        AGE
+    eb-job-66f946b9f6-s9rz6             1/1     Running   3 (4m3s ago)    4m33s
+    eb-job-66f946b9f6-t24gv             1/1     Running   3 (4m6s ago)    4m33s
+    eb-job-66f946b9f6-vz8wf             1/1     Running   3 (3m51s ago)   4m33s
+    eb-pg-ha-pgpool-58959774c7-42sgk    1/1     Running   0               4m33s
+    eb-pg-ha-pgpool-58959774c7-lgb9g    1/1     Running   0               4m33s
+    eb-pg-ha-postgresql-0               1/1     Running   0               4m32s
+    eb-pg-ha-postgresql-1               1/1     Running   0               4m32s
+    eb-pg-ha-postgresql-2               1/1     Running   0               4m32s
+    eb-redis-cluster-0                  1/1     Running   0               4m32s
+    eb-redis-cluster-1                  1/1     Running   0               4m31s
+    eb-redis-cluster-2                  1/1     Running   0               4m31s
+    eb-redis-cluster-3                  1/1     Running   0               4m30s
+    eb-redis-cluster-4                  1/1     Running   0               4m31s
+    eb-redis-cluster-5                  1/1     Running   0               4m31s
+    eb-rmq-broker-master-0              1/1     Running   0               4m32s
+    eb-rmq-broker-master-1              1/1     Running   0               2m52s
+    eb-rmq-broker-replica-id1-0         1/1     Running   0               4m31s
+    eb-rmq-broker-replica-id1-1         1/1     Running   0               2m50s
+    eb-rmq-broker-replica-id2-0         1/1     Running   0               4m31s
+    eb-rmq-broker-replica-id2-1         1/1     Running   0               3m31s
+    eb-rmq-controller-0                 1/1     Running   0               4m32s
+    eb-rmq-controller-1                 1/1     Running   0               4m32s
+    eb-rmq-controller-2                 1/1     Running   0               4m32s
+    eb-rmq-dashboard-6bcbb4dd4b-jwp8n   1/1     Running   0               4m33s
+    eb-rmq-nameserver-0                 1/1     Running   0               4m33s
+    eb-rmq-nameserver-1                 1/1     Running   0               4m32s
+    eb-rmq-nameserver-2                 1/1     Running   0               4m32s
+    eb-rmq-proxy-bcd8968-2mfq4          1/1     Running   4 (3m28s ago)   4m33s
+    eb-rmq-proxy-bcd8968-2vjt6          1/1     Running   4 (3m30s ago)   4m33s
+    eb-rmq-proxy-bcd8968-dtmx2          1/1     Running   3 (3m32s ago)   4m33s
+    eb-service-56cd698777-cbb5q         1/1     Running   2 (4m9s ago)    4m33s
+    eb-service-56cd698777-qqfs2         1/1     Running   3 (3m50s ago)   4m18s
+    eb-service-56cd698777-sdmjr         1/1     Running   3 (3m54s ago)   4m18s
+
+All services are in the `Running` state, indicating they have started successfully. 
+You may notice that some Pods have a `RESTARTS` count greater than 0; 
+this is because their dependent services were not ready, causing them to restart a few times. 
+As long as the final status is `Running` , this is expected and not an issue.
 
 </details>
 
@@ -451,6 +512,4 @@ curl --location '127.0.0.1:8011/v1/eventbridge/event' \
 
 You will see the following output in the HTTP server running on `192.168.30.143`:
 
-```
-Received event: {"code":"10188:i am test content"}
-```
+    Received event: {"code":"10188:i am test content"}
