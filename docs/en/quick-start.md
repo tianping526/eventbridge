@@ -299,7 +299,7 @@ kubectl -n eventbridge get pod
     eb-service-56cd698777-qqfs2         1/1     Running   3 (3m50s ago)   4m18s
     eb-service-56cd698777-sdmjr         1/1     Running   3 (3m54s ago)   4m18s
 
-All services are in the `Running` state, indicating they have started successfully. 
+All services are in the `Running` status, indicating they have started successfully. 
 You may notice that some Pods have a `RESTARTS` count greater than 0; 
 this is because their dependent services were not ready, causing them to restart a few times. 
 As long as the final status is `Running` , this is expected and not an issue.
