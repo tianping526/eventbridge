@@ -23,7 +23,6 @@ require (
 	github.com/google/wire v0.6.0
 	github.com/gorilla/handlers v1.5.2
 	github.com/jackc/pgx/v4 v4.18.3
-	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.22.0
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.10.0
@@ -46,6 +45,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20250603155806-513f23925822
 	google.golang.org/grpc v1.73.0
 	google.golang.org/protobuf v1.36.6
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
@@ -156,6 +156,7 @@ require (
 	github.com/moby/term v0.5.2 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/natefinch/lumberjack v2.0.0+incompatible // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/onsi/ginkgo/v2 v2.23.4 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
@@ -215,7 +216,6 @@ require (
 	golang.org/x/tools v0.34.0 // indirect
 	google.golang.org/api v0.236.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	pluginrpc.com/pluginrpc v0.5.0 // indirect
 )

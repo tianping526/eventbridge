@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/redis/go-redis/v9"
 
 	v1 "github.com/tianping526/eventbridge/apis/api/eventbridge/service/v1"
 	"github.com/tianping526/eventbridge/app/service/internal/biz"
@@ -12,30 +13,31 @@ import (
 	entBus "github.com/tianping526/eventbridge/app/service/internal/data/ent/bus"
 	"github.com/tianping526/eventbridge/app/service/internal/data/ent/eventschema"
 	"github.com/tianping526/eventbridge/app/service/internal/data/ent/rule"
+	"github.com/tianping526/eventbridge/app/service/internal/data/entext"
 )
 
-const busesVersionID = 1
-
 type busRepo struct {
-	data *Data
-	log  *log.Helper
+	log *log.Helper
+	db  *ent.Client
+	rc  redis.Cmdable
 }
 
-func NewBusRepo(data *Data, logger log.Logger) biz.BusRepo {
+func NewBusRepo(logger log.Logger, db *ent.Client, rc redis.Cmdable) biz.BusRepo {
 	return &busRepo{
-		data: data,
 		log: log.NewHelper(log.With(
 			logger,
 			"module", "repo/bus",
 			"caller", log.DefaultCaller,
 		)),
+		db: db,
+		rc: rc,
 	}
 }
 
 func (repo *busRepo) ListBus(
 	ctx context.Context, prefix *string, limit int32, nextToken uint64,
 ) ([]*biz.Bus, uint64, error) {
-	stmt := repo.data.db.Bus.Query()
+	stmt := repo.db.Bus.Query()
 	if prefix != nil {
 		stmt.Where(entBus.NameHasPrefix(*prefix))
 	}
@@ -71,8 +73,8 @@ func (repo *busRepo) CreateBus(
 	sourceDelayTopic string, targetExpDecayTopic string, targetBackoffTopic string,
 ) (uint64, error) {
 	var id uint64
-	err := WithTx(ctx, repo.data.db, func(tx *ent.Tx) error {
-		b, te := repo.data.db.Bus.Create().
+	err := entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {
+		b, te := repo.db.Bus.Create().
 			SetName(bus).
 			SetMode(uint8(mode)).
 			SetSourceTopic(sourceTopic).
@@ -91,7 +93,7 @@ func (repo *busRepo) CreateBus(
 		}
 
 		// update version
-		te = tx.Version.UpdateOneID(busesVersionID).AddVersion(1).Exec(ctx)
+		te = tx.Version.UpdateOneID(entext.BusesVersionID).AddVersion(1).Exec(ctx)
 		if te != nil {
 			return te
 		}
@@ -105,7 +107,7 @@ func (repo *busRepo) CreateBus(
 
 func (repo *busRepo) DeleteBus(ctx context.Context, busName string) error {
 	var schemaIDs []uint64
-	err := WithTx(ctx, repo.data.db, func(tx *ent.Tx) error {
+	err := entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {
 		// query bus and lock
 		bid, te := tx.Bus.Query().
 			Where(
@@ -159,7 +161,7 @@ func (repo *busRepo) DeleteBus(ctx context.Context, busName string) error {
 		}
 
 		// update version
-		te = tx.Version.UpdateOneID(busesVersionID).AddVersion(1).Exec(ctx)
+		te = tx.Version.UpdateOneID(entext.BusesVersionID).AddVersion(1).Exec(ctx)
 		if te != nil {
 			return te
 		}
@@ -171,7 +173,7 @@ func (repo *busRepo) DeleteBus(ctx context.Context, busName string) error {
 	}
 
 	// update cache
-	schemas, err := repo.data.db.EventSchema.Query().
+	schemas, err := repo.db.EventSchema.Query().
 		Where(
 			eventschema.IDIn(schemaIDs...),
 		).
@@ -181,7 +183,7 @@ func (repo *busRepo) DeleteBus(ctx context.Context, busName string) error {
 		return nil
 	}
 	for _, s := range schemas {
-		err = SetCacheSchema(ctx, repo.data.rc, fmt.Sprintf("%s:%s", s.Source, s.Type), s)
+		err = SetCacheSchema(ctx, repo.rc, fmt.Sprintf("%s:%s", s.Source, s.Type), s)
 		if err != nil {
 			repo.log.WithContext(ctx).Errorf("SetCacheSchema: %+v, schema: %+v", err, s)
 		}
