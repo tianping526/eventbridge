@@ -13,6 +13,7 @@ import (
 	"github.com/tianping526/eventbridge/app/service/internal/data/ent"
 	entBus "github.com/tianping526/eventbridge/app/service/internal/data/ent/bus"
 	"github.com/tianping526/eventbridge/app/service/internal/data/ent/version"
+	"github.com/tianping526/eventbridge/app/service/internal/data/entext"
 )
 
 type reflector struct {
@@ -91,7 +92,7 @@ func (r *reflector) Close() error {
 func (r *reflector) fetchBusesVersion() (uint64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), r.dbTimeout)
 	defer cancel()
-	v, err := r.db.Version.Query().Select(version.FieldVersion).Where(version.ID(busesVersionID)).Only(ctx)
+	v, err := r.db.Version.Query().Select(version.FieldVersion).Where(version.ID(entext.BusesVersionID)).Only(ctx)
 	if err != nil {
 		return 0, err
 	}

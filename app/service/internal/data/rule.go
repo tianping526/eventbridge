@@ -13,23 +13,22 @@ import (
 	"github.com/tianping526/eventbridge/app/service/internal/data/ent"
 	entBus "github.com/tianping526/eventbridge/app/service/internal/data/ent/bus"
 	"github.com/tianping526/eventbridge/app/service/internal/data/ent/rule"
+	"github.com/tianping526/eventbridge/app/service/internal/data/entext"
 )
 
-const rulesVersionID = 2
-
 type ruleRepo struct {
-	data   *Data
 	logger *log.Helper
+	db     *ent.Client
 }
 
-func NewRuleRepo(data *Data, logger log.Logger) biz.RuleRepo {
+func NewRuleRepo(logger log.Logger, db *ent.Client) biz.RuleRepo {
 	return &ruleRepo{
-		data: data,
 		logger: log.NewHelper(log.With(
 			logger,
 			"module", "repo/rule",
 			"caller", log.DefaultCaller,
 		)),
+		db: db,
 	}
 }
 
@@ -37,7 +36,7 @@ func (repo *ruleRepo) ListRule(
 	ctx context.Context, bus string, prefix *string, status v1.RuleStatus, limit int32, nextToken uint64,
 ) ([]*ir.Rule, uint64, error) {
 	convertedLimit := int(limit)
-	stmt := repo.data.db.Rule.Query().Where(rule.BusName(bus))
+	stmt := repo.db.Rule.Query().Where(rule.BusName(bus))
 	if prefix != nil {
 		stmt.Where(rule.NameHasPrefix(*prefix))
 	}
@@ -88,7 +87,7 @@ func (repo *ruleRepo) CreateRule(
 	targets = uniqueIDTargets
 
 	var r *ent.Rule
-	err := WithTx(ctx, repo.data.db, func(tx *ent.Tx) error {
+	err := entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {
 		// query data bus and lock
 		_, te := tx.Bus.Query().
 			Where(entBus.Name(busName)).
@@ -127,7 +126,7 @@ func (repo *ruleRepo) CreateRule(
 		}
 
 		// update version
-		te = tx.Version.UpdateOneID(rulesVersionID).AddVersion(1).Exec(ctx)
+		te = tx.Version.UpdateOneID(entext.RulesVersionID).AddVersion(1).Exec(ctx)
 		if te != nil {
 			return te
 		}
@@ -143,7 +142,7 @@ func (repo *ruleRepo) CreateRule(
 func (repo *ruleRepo) UpdateRule(
 	ctx context.Context, bus string, name string, status v1.RuleStatus, pattern *string,
 ) error {
-	stmt := repo.data.db.Rule.Update().
+	stmt := repo.db.Rule.Update().
 		Where(
 			rule.BusName(bus),
 			rule.Name(name),
@@ -155,7 +154,7 @@ func (repo *ruleRepo) UpdateRule(
 		stmt.SetPattern(*pattern)
 	}
 
-	return WithTx(ctx, repo.data.db, func(tx *ent.Tx) error {
+	return entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {
 		ar, err := stmt.Save(ctx)
 		if err != nil {
 			return err
@@ -168,7 +167,7 @@ func (repo *ruleRepo) UpdateRule(
 		}
 
 		// update version
-		err = tx.Version.UpdateOneID(rulesVersionID).AddVersion(1).Exec(ctx)
+		err = tx.Version.UpdateOneID(entext.RulesVersionID).AddVersion(1).Exec(ctx)
 		if err != nil {
 			return err
 		}
@@ -178,8 +177,8 @@ func (repo *ruleRepo) UpdateRule(
 }
 
 func (repo *ruleRepo) DeleteRule(ctx context.Context, bus string, name string) error {
-	return WithTx(ctx, repo.data.db, func(tx *ent.Tx) error {
-		dr, err := repo.data.db.Rule.Delete().
+	return entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {
+		dr, err := repo.db.Rule.Delete().
 			Where(
 				rule.BusName(bus),
 				rule.Name(name),
@@ -196,7 +195,7 @@ func (repo *ruleRepo) DeleteRule(ctx context.Context, bus string, name string) e
 		}
 
 		// update version
-		err = tx.Version.UpdateOneID(rulesVersionID).AddVersion(1).Exec(ctx)
+		err = tx.Version.UpdateOneID(entext.RulesVersionID).AddVersion(1).Exec(ctx)
 		if err != nil {
 			return err
 		}
@@ -206,7 +205,7 @@ func (repo *ruleRepo) DeleteRule(ctx context.Context, bus string, name string) e
 }
 
 func (repo *ruleRepo) CreateTargets(ctx context.Context, bus string, ruleName string, targets []*ir.Target) error {
-	err := WithTx(ctx, repo.data.db, func(tx *ent.Tx) error {
+	err := entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {
 		r, te := tx.Rule.Query().
 			Where(
 				rule.BusName(bus),
@@ -251,7 +250,7 @@ func (repo *ruleRepo) CreateTargets(ctx context.Context, bus string, ruleName st
 		}
 
 		// update version
-		te = tx.Version.UpdateOneID(rulesVersionID).AddVersion(1).Exec(ctx)
+		te = tx.Version.UpdateOneID(entext.RulesVersionID).AddVersion(1).Exec(ctx)
 		if te != nil {
 			return te
 		}
@@ -269,7 +268,7 @@ func (repo *ruleRepo) DeleteTargets(ctx context.Context, bus string, ruleName st
 	for _, tid := range targetIDs {
 		tdm[tid] = true
 	}
-	err := WithTx(ctx, repo.data.db, func(tx *ent.Tx) error {
+	err := entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {
 		r, te := tx.Rule.Query().
 			Where(
 				rule.BusName(bus),
@@ -311,7 +310,7 @@ func (repo *ruleRepo) DeleteTargets(ctx context.Context, bus string, ruleName st
 		}
 
 		// update version
-		te = tx.Version.UpdateOneID(rulesVersionID).AddVersion(1).Exec(ctx)
+		te = tx.Version.UpdateOneID(entext.RulesVersionID).AddVersion(1).Exec(ctx)
 		if te != nil {
 			return te
 		}

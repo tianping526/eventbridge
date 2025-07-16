@@ -29,6 +29,7 @@ import (
 	"github.com/tianping526/eventbridge/app/job/internal/conf"
 	"github.com/tianping526/eventbridge/app/job/internal/data"
 	"github.com/tianping526/eventbridge/app/job/internal/data/ent"
+	"github.com/tianping526/eventbridge/app/job/internal/data/entext"
 
 	// init db driver
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -218,7 +219,7 @@ func TestPostEventOrderly(t *testing.T) { //nolint:gocyclo
 	}
 
 	// Update rulesVersion
-	_, err = client.Version.UpdateOneID(data.RulesVersionID).AddVersion(1).Save(context.Background())
+	_, err = client.Version.UpdateOneID(entext.RulesVersionID).AddVersion(1).Save(context.Background())
 	if err != nil {
 		t.Errorf("rulesVersion update error: %v", err)
 	}

@@ -13,12 +13,14 @@ import (
 	v1 "github.com/tianping526/eventbridge/apis/api/eventbridge/service/v1"
 	"github.com/tianping526/eventbridge/app/internal/informer"
 	"github.com/tianping526/eventbridge/app/internal/rule"
+	"github.com/tianping526/eventbridge/app/internal/rule/pattern"
+	"github.com/tianping526/eventbridge/app/internal/rule/target"
+	"github.com/tianping526/eventbridge/app/internal/rule/transform"
 	"github.com/tianping526/eventbridge/app/job/internal/data/ent"
 	entRule "github.com/tianping526/eventbridge/app/job/internal/data/ent/rule"
 	"github.com/tianping526/eventbridge/app/job/internal/data/ent/version"
+	"github.com/tianping526/eventbridge/app/job/internal/data/entext"
 )
-
-const RulesVersionID = 2
 
 type ruleReflector struct {
 	log *log.Helper
@@ -92,7 +94,7 @@ func (rr *ruleReflector) Close() error {
 func (rr *ruleReflector) fetchRulesVersion() (uint64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), rr.dbTimeout)
 	defer cancel()
-	v, err := rr.db.Version.Query().Select(version.FieldVersion).Where(version.ID(RulesVersionID)).Only(ctx)
+	v, err := rr.db.Version.Query().Select(version.FieldVersion).Where(version.ID(entext.RulesVersionID)).Only(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -172,4 +174,22 @@ func (rr *ruleReflector) fetchEnableRules() ([]*rule.Rule, error) {
 		}
 	}
 	return rules, nil
+}
+
+func NewRules(logger log.Logger, db *ent.Client, m *Metric) (rule.Rules, func(), error) {
+	reflector, err := NewRuleReflector(logger, db)
+	if err != nil {
+		return nil, nil, err
+	}
+	return rule.NewRules(
+		logger,
+		reflector,
+		rule.NewNewExecutorFunc(
+			pattern.NewMatcher,
+			transform.NewTransformer,
+			target.NewDispatcher,
+		),
+		rule.WithExecuteDuration(m.RuleExecSec),
+		rule.WithExecuteTotal(m.RuleExecTotal),
+	)
 }

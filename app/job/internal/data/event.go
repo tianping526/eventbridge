@@ -29,19 +29,23 @@ const (
 var otr = otel.Tracer("/app/job/internal/data/event")
 
 type eventRepo struct {
-	data *Data
-	log  *log.Helper
+	log *log.Helper
+	sd  Sender
+	m   *Metric
+	rs  rule.Rules
 }
 
-func NewEventRepo(data *Data, logger log.Logger) biz.EventRepo {
+func NewEventRepo(logger log.Logger, sd Sender, m *Metric, rs rule.Rules) biz.EventRepo {
 	return &eventRepo{
-		data: data,
-		log:  log.NewHelper(log.With(logger, "module", "data/event")),
+		log: log.NewHelper(log.With(logger, "module", "data/event")),
+		sd:  sd,
+		m:   m,
+		rs:  rs,
 	}
 }
 
 func (repo *eventRepo) HandleEvent(ctx context.Context, evt *rule.EventExt) error {
-	executors, err := repo.data.rs.GetExecutors(evt.BusName)
+	executors, err := repo.rs.GetExecutors(evt.BusName)
 	if err != nil {
 		return fmt.Errorf("get bus(%s) executors err: %s", evt.BusName, err)
 	}
@@ -225,8 +229,8 @@ func (repo *eventRepo) dispatchTargetEvent(ctx context.Context, exec rule.Execut
 
 	// dispatch failed, send it to backoff queue
 	startTime := time.Now()
-	err = repo.data.sd.Send(ctx, evt)
-	repo.data.m.PostEventDurationSec.Record(
+	err = repo.sd.Send(ctx, evt)
+	repo.m.PostEventDurationSec.Record(
 		ctx, time.Since(startTime).Seconds(),
 		metric.WithAttributes(
 			attribute.String(metricPostEventBusName, evt.BusName),
@@ -234,7 +238,7 @@ func (repo *eventRepo) dispatchTargetEvent(ctx context.Context, exec rule.Execut
 		),
 	)
 	if err != nil {
-		repo.data.m.PostEventCount.Add(
+		repo.m.PostEventCount.Add(
 			ctx, 1,
 			metric.WithAttributes(
 				attribute.String(metricPostEventBusName, evt.BusName),
@@ -245,7 +249,7 @@ func (repo *eventRepo) dispatchTargetEvent(ctx context.Context, exec rule.Execut
 		err = fmt.Errorf("send event(%s) to backoff queue err: %s", evt.Key(), err)
 		return
 	}
-	repo.data.m.PostEventCount.Add(
+	repo.m.PostEventCount.Add(
 		ctx, 1,
 		metric.WithAttributes(
 			attribute.String(metricPostEventBusName, evt.BusName),

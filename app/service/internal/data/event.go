@@ -23,6 +23,7 @@ import (
 	"github.com/tianping526/eventbridge/app/service/internal/data/ent"
 	entBus "github.com/tianping526/eventbridge/app/service/internal/data/ent/bus"
 	"github.com/tianping526/eventbridge/app/service/internal/data/ent/eventschema"
+	"github.com/tianping526/eventbridge/app/service/internal/data/entext"
 )
 
 const (
@@ -40,20 +41,30 @@ var (
 )
 
 type eventRepo struct {
-	data *Data
-	sf   *singleflight.Group
-	log  *log.Helper
+	log    *log.Helper
+	sf     *singleflight.Group
+	db     *ent.Client
+	sender Sender
+	m      *Metric
+	rc     redis.Cmdable
+	sc     *cache.Cache
 }
 
-func NewEventRepo(data *Data, logger log.Logger) biz.EventRepo {
+func NewEventRepo(
+	logger log.Logger, db *ent.Client, sender Sender, m *Metric, rc redis.Cmdable, sc *cache.Cache,
+) biz.EventRepo {
 	return &eventRepo{
-		data: data,
-		sf:   new(singleflight.Group),
 		log: log.NewHelper(log.With(
 			logger,
 			"module", "repo/event",
 			"caller", log.DefaultCaller,
 		)),
+		sf:     new(singleflight.Group),
+		db:     db,
+		sender: sender,
+		m:      m,
+		rc:     rc,
+		sc:     sc,
 	}
 }
 
@@ -88,12 +99,12 @@ func (repo *eventRepo) PostEvent(
 	startTime := time.Now()
 	if pubTime.IsValid() && time.Until(pubTime.AsTime()) >= time.Second { // delay
 		eventType = "source_delay_event"
-		messageID, err = repo.data.sender.Send(ctx, schema.BusName, eventExt, pubTime)
+		messageID, err = repo.sender.Send(ctx, schema.BusName, eventExt, pubTime)
 	} else {
 		eventType = "source_event"
-		messageID, err = repo.data.sender.Send(ctx, schema.BusName, eventExt, nil)
+		messageID, err = repo.sender.Send(ctx, schema.BusName, eventExt, nil)
 	}
-	repo.data.m.PostEventDurationSec.Record(
+	repo.m.PostEventDurationSec.Record(
 		ctx, time.Since(startTime).Seconds(),
 		metric.WithAttributes(
 			attribute.String(metricPostEventBusName, schema.BusName),
@@ -101,7 +112,7 @@ func (repo *eventRepo) PostEvent(
 		),
 	)
 	if err != nil {
-		repo.data.m.PostEventCount.Add(
+		repo.m.PostEventCount.Add(
 			ctx, 1,
 			metric.WithAttributes(
 				attribute.String(metricPostEventBusName, schema.BusName),
@@ -111,7 +122,7 @@ func (repo *eventRepo) PostEvent(
 		)
 		return nil, err
 	}
-	repo.data.m.PostEventCount.Add(
+	repo.m.PostEventCount.Add(
 		ctx, 1,
 		metric.WithAttributes(
 			attribute.String(metricPostEventBusName, schema.BusName),
@@ -129,7 +140,7 @@ func (repo *eventRepo) PostEvent(
 
 func (repo *eventRepo) GetLocalCacheSchema(ctx context.Context, source string, sType string) (*biz.Schema, error) {
 	lcKey := fmt.Sprintf("%s:%s", source, sType)
-	val, ok := repo.data.sc.Get(lcKey)
+	val, ok := repo.sc.Get(lcKey)
 	if ok {
 		if val == nil {
 			return nil, nil
@@ -157,7 +168,7 @@ func (repo *eventRepo) GetLocalCacheSchema(ctx context.Context, source string, s
 		}
 	}
 
-	repo.data.sc.Set(lcKey, schema, cache.DefaultExpiration)
+	repo.sc.Set(lcKey, schema, cache.DefaultExpiration)
 
 	return schema, nil
 }
@@ -186,7 +197,7 @@ func (repo *eventRepo) ListSchema(
 	}
 
 	// slow path
-	stmt := repo.data.db.EventSchema.Query()
+	stmt := repo.db.EventSchema.Query()
 	if source != nil {
 		stmt.Where(eventschema.Source(*source))
 	}
@@ -228,13 +239,13 @@ func (repo *eventRepo) FetchSchema(ctx context.Context, source string, sType str
 			var res interface{}
 			res, err, _ = repo.sf.Do(sfKey, func() (interface{}, error) {
 				fetchRaw = true
-				repo.data.m.CacheMisses.Add(
+				repo.m.CacheMisses.Add(
 					ctx, 1,
 					metric.WithAttributes(
 						attribute.String(metricLabelCacheName, "schema"),
 					),
 				)
-				return repo.data.db.EventSchema.Query().
+				return repo.db.EventSchema.Query().
 					Where(
 						eventschema.Source(source),
 						eventschema.Type(sType),
@@ -251,7 +262,7 @@ func (repo *eventRepo) FetchSchema(ctx context.Context, source string, sType str
 			if !fetchRaw {
 				return s, nil
 			}
-			err = SetCacheSchema(ctx, repo.data.rc, id, s)
+			err = SetCacheSchema(ctx, repo.rc, id, s)
 			if err != nil {
 				repo.log.WithContext(ctx).Errorf("SetCacheSchema: %+v, schema: %+v", err, s)
 			}
@@ -259,7 +270,7 @@ func (repo *eventRepo) FetchSchema(ctx context.Context, source string, sType str
 		}
 		return nil, err
 	}
-	repo.data.m.CacheHits.Add(
+	repo.m.CacheHits.Add(
 		ctx, 1,
 		metric.WithAttributes(
 			attribute.String(metricLabelCacheName, "schema"),
@@ -271,7 +282,7 @@ func (repo *eventRepo) FetchSchema(ctx context.Context, source string, sType str
 // FetchCacheSchema from redis
 func (repo *eventRepo) FetchCacheSchema(ctx context.Context, id string) (*ent.EventSchema, error) {
 	key := fmt.Sprintf("eb:event:schema:{%s}", id)
-	val, err := repo.data.rc.Get(ctx, key).Bytes()
+	val, err := repo.rc.Get(ctx, key).Bytes()
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +317,7 @@ func (repo *eventRepo) CreateSchema(
 	ctx context.Context, source string, sType string, busName string, spec *string,
 ) error {
 	var s *ent.EventSchema
-	err := WithTx(ctx, repo.data.db, func(tx *ent.Tx) error {
+	err := entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {
 		// query data bus and lock
 		_, te := tx.Bus.Query().
 			Where(entBus.Name(busName)).
@@ -323,7 +334,7 @@ func (repo *eventRepo) CreateSchema(
 		}
 
 		// save schema
-		s, te = repo.data.db.EventSchema.Create().
+		s, te = repo.db.EventSchema.Create().
 			SetSource(source).
 			SetType(sType).
 			SetBusName(busName).
@@ -348,7 +359,7 @@ func (repo *eventRepo) CreateSchema(
 	// update cache
 	err = SetCacheSchema(
 		ctx,
-		repo.data.rc,
+		repo.rc,
 		fmt.Sprintf("%s:%s", source, sType),
 		s,
 	)
@@ -362,7 +373,7 @@ func (repo *eventRepo) CreateSchema(
 func (repo *eventRepo) UpdateSchema(
 	ctx context.Context, source string, sType string, busName *string, spec *string,
 ) error {
-	stmt := repo.data.db.EventSchema.Update().
+	stmt := repo.db.EventSchema.Update().
 		Where(
 			eventschema.Source(source),
 			eventschema.Type(sType),
@@ -375,7 +386,7 @@ func (repo *eventRepo) UpdateSchema(
 	var err error
 	if busName != nil {
 		stmt.SetBusName(*busName)
-		err = WithTx(ctx, repo.data.db, func(tx *ent.Tx) error {
+		err = entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {
 			// query data bus and lock
 			_, te := tx.Bus.Query().
 				Where(entBus.Name(*busName)).
@@ -413,7 +424,7 @@ func (repo *eventRepo) UpdateSchema(
 
 	// update cache
 	id := fmt.Sprintf("%s:%s", source, sType)
-	s, err := repo.data.db.EventSchema.Query().
+	s, err := repo.db.EventSchema.Query().
 		Where(
 			eventschema.Source(source),
 			eventschema.Type(sType),
@@ -425,7 +436,7 @@ func (repo *eventRepo) UpdateSchema(
 			return nil
 		}
 	}
-	err = SetCacheSchema(ctx, repo.data.rc, id, s)
+	err = SetCacheSchema(ctx, repo.rc, id, s)
 	if err != nil {
 		repo.log.WithContext(ctx).Errorf("SetCacheSchema: %+v, schema: %+v", err, s)
 	}
@@ -434,7 +445,7 @@ func (repo *eventRepo) UpdateSchema(
 }
 
 func (repo *eventRepo) DeleteSchema(ctx context.Context, source string, sType *string) error {
-	stmt := repo.data.db.EventSchema.Delete().Where(eventschema.Source(source))
+	stmt := repo.db.EventSchema.Delete().Where(eventschema.Source(source))
 	if sType != nil {
 		stmt.Where(eventschema.Type(*sType))
 	}
@@ -449,14 +460,14 @@ func (repo *eventRepo) DeleteSchema(ctx context.Context, source string, sType *s
 		t = *sType
 	}
 	prefix := fmt.Sprintf("eb:event:schema:{%s:%s}*", source, t)
-	keys, cursor, err := repo.data.rc.Scan(ctx, 0, prefix, 500).Result()
+	keys, cursor, err := repo.rc.Scan(ctx, 0, prefix, 500).Result()
 	if err != nil {
 		repo.log.WithContext(ctx).Errorf("scan schema cache keys(%s): %+v", prefix, err)
 		return nil
 	}
 	for cursor > 0 {
 		var ks []string
-		ks, cursor, err = repo.data.rc.Scan(ctx, cursor, prefix, 500).Result()
+		ks, cursor, err = repo.rc.Scan(ctx, cursor, prefix, 500).Result()
 		if err != nil {
 			repo.log.WithContext(ctx).Errorf("scan schema cache keys(%s): %+v", prefix, err)
 			break
@@ -471,7 +482,7 @@ func (repo *eventRepo) DeleteSchema(ctx context.Context, source string, sType *s
 	for _, key := range keys {
 		verKeys = append(verKeys, fmt.Sprintf("%s:version", key))
 	}
-	err = repo.data.rc.Del(ctx, append(verKeys, keys...)...).Err()
+	err = repo.rc.Del(ctx, append(verKeys, keys...)...).Err()
 	if err != nil {
 		repo.log.WithContext(ctx).Errorf("delete schema cache keys: %+v", err)
 	}
