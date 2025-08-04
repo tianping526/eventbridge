@@ -27,7 +27,7 @@ bootstrap:
       write_timeout: 0.2s
     default_mq: rocketmq://127.0.0.1:8081
   auth:
-    key: some-secret-key
+    key: ""
 #  log:
 #    level: INFO # DEBUG, INFO, WARN, ERROR
 #    encoding: JSON # JSON, CONSOLE
