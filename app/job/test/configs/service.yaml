@@ -21,8 +21,6 @@ bootstrap:
       conn_max_life_time: 0s
       conn_max_idle_time: 300s
     default_mq: rocketmq://proxy:8081
-  auth:
-    key: some-secret-key
 #  log:
 #    level: INFO # DEBUG, INFO, WARN, ERROR
 #    encoding: JSON # JSON, CONSOLE

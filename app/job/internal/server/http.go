@@ -24,7 +24,6 @@ func NewHTTPServer(
 	_ trace.TracerProvider, // otel.SetTracerProvider(provider) instead, but need to declare to wire injection
 ) *http.Server {
 	cs := bc.Server
-	// ca := bc.Auth
 	opts := []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
