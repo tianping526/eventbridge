@@ -34,7 +34,7 @@ jobs:
           --health-retries 5
 
       redis:
-        image: redis:7.4.2
+        image: redis:8.2.0
 
         options: >-
           --health-cmd "redis-cli ping"

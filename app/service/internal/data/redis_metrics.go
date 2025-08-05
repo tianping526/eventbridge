@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -16,7 +17,7 @@ import (
 
 const (
 	metricLabelCacheName   = "name"
-	metricLabelCacheAddr   = "addr"
+	metricLabelCacheAddrs  = "addrs"
 	metricLabelCacheResult = "res"
 )
 
@@ -33,9 +34,9 @@ func WithRedisRequestsDuration(c metric.Float64Histogram) RedisMetricsOption {
 }
 
 // WithRedisEndpointAddr with db Addr.
-func WithRedisEndpointAddr(a string) RedisMetricsOption {
+func WithRedisEndpointAddr(addrs ...string) RedisMetricsOption {
 	return func(o *redisMetricsOptions) {
-		o.Addr = a
+		o.Addrs = strings.Join(addrs, ",")
 	}
 }
 
@@ -49,9 +50,9 @@ func NewRedisMetricHook(opts ...RedisMetricsOption) *RedisMetricHook {
 }
 
 type redisMetricsOptions struct {
-	// histogram: cache_client_requests_duration_sec_bucket{"name", "addr", "res"}
+	// histogram: cache_client_requests_duration_seconds_bucket{"name", "addrs", "res"}
 	requestsDuration metric.Float64Histogram
-	Addr             string
+	Addrs            string
 }
 
 type RedisMetricHook struct {
@@ -78,7 +79,7 @@ func (rmh *RedisMetricHook) ProcessHook(next redis.ProcessHook) redis.ProcessHoo
 					ctx, time.Since(startTime).Seconds(),
 					metric.WithAttributes(
 						attribute.String(metricLabelCacheName, cmd.FullName()),
-						attribute.String(metricLabelCacheAddr, rmh.op.Addr),
+						attribute.String(metricLabelCacheAddrs, rmh.op.Addrs),
 						attribute.String(metricLabelCacheResult, res),
 					),
 				)
@@ -104,7 +105,7 @@ func (rmh *RedisMetricHook) ProcessPipelineHook(next redis.ProcessPipelineHook) 
 					ctx, time.Since(startTime).Seconds(),
 					metric.WithAttributes(
 						attribute.String(metricLabelCacheName, fmt.Sprintf("pipeline%s", summary)),
-						attribute.String(metricLabelCacheAddr, rmh.op.Addr),
+						attribute.String(metricLabelCacheAddrs, rmh.op.Addrs),
 						attribute.String(metricLabelCacheResult, res),
 					),
 				)

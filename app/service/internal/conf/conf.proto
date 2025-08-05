@@ -51,12 +51,18 @@ message Data {
     google.protobuf.Duration conn_max_idle_time = 6;
   }
   message Redis {
-    string addr = 1;
-    string password = 2;
-    int64  db_index = 3;
-    google.protobuf.Duration  dial_timeout = 4;
-    google.protobuf.Duration  read_timeout = 5;
-    google.protobuf.Duration  write_timeout = 6;
+    // If the master_name is specified, it is a failover client.
+    // If the addrs is two or more addresses, it is a cluster client.
+    // Otherwise, it is a single-node client.
+    repeated string addrs = 1;
+    // Only failover clients.
+    string master_name = 2;
+    string password = 3;
+    // Only single-node and failover clients.
+    int64  db_index = 4;
+    google.protobuf.Duration  dial_timeout = 5;
+    google.protobuf.Duration  read_timeout = 6;
+    google.protobuf.Duration  write_timeout = 7;
   }
   Database database = 1;
   Redis redis = 2;
