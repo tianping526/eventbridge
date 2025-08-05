@@ -9,6 +9,7 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/metrics"
 	"github.com/go-kratos/kratos/v2/middleware/ratelimit"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	"github.com/go-kratos/kratos/v2/middleware/selector"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/http"
 	jwtV5 "github.com/golang-jwt/jwt/v5"
@@ -45,9 +46,15 @@ func NewHTTPServer(
 		validateV2.ProtoValidate(),
 	}
 	if ca != nil && ca.Key != "" {
-		middlewares = append(middlewares, jwt.Server(func(_ *jwtV5.Token) (interface{}, error) {
-			return []byte(ca.Key), nil
-		}))
+		middlewares = append(middlewares, selector.Server(
+			jwt.Server(func(_ *jwtV5.Token) (interface{}, error) {
+				return []byte(ca.Key), nil
+			}, jwt.WithSigningMethod(jwtV5.SigningMethodHS256), jwt.WithClaims(func() jwtV5.Claims {
+				return &jwtV5.MapClaims{}
+			})),
+		).
+			Match(NewWhiteListMatcher()).
+			Build())
 	}
 	opts := []http.ServerOption{
 		http.Middleware(
