@@ -45,9 +45,9 @@ func NewMetric(ai *conf.AppInfo) (*Metric, error) {
 		return nil, err
 	}
 	cacheDurationSec, err := meter.Float64Histogram(
-		"cache_client_requests_duration_sec",
+		"cache_client_requests_duration",
 		metric.WithUnit("s"),
-		metric.WithDescription("Cache requests duration(sec)."),
+		metric.WithDescription("Cache requests duration."),
 		metric.WithExplicitBucketBoundaries(0.005, 0.01, 0.025, 0.05, 0.1, 0.250, 0.5, 1),
 	)
 	if err != nil {
@@ -62,9 +62,9 @@ func NewMetric(ai *conf.AppInfo) (*Metric, error) {
 		return nil, err
 	}
 	dbDurationSec, err := meter.Float64Histogram(
-		"db_client_requests_duration_sec",
+		"db_client_requests_duration",
 		metric.WithUnit("s"),
-		metric.WithDescription("DB requests duration(sec)."),
+		metric.WithDescription("DB requests duration."),
 		metric.WithExplicitBucketBoundaries(0.005, 0.01, 0.025, 0.05, 0.1, 0.250, 0.5, 1),
 	)
 	if err != nil {
@@ -79,9 +79,9 @@ func NewMetric(ai *conf.AppInfo) (*Metric, error) {
 		return nil, err
 	}
 	postEventDurationSec, err := meter.Float64Histogram(
-		"job_event_post_duration_sec",
+		"job_event_post_duration",
 		metric.WithUnit("s"),
-		metric.WithDescription("Post event duration(sec)."),
+		metric.WithDescription("Post event duration."),
 		metric.WithExplicitBucketBoundaries(0.005, 0.01, 0.025, 0.05, 0.1, 0.250, 0.5, 1),
 	)
 	if err != nil {

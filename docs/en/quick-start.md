@@ -172,7 +172,8 @@ bootstrap:
       conn_max_life_time: 0s
       conn_max_idle_time: 300s
     redis:
-      addr: redis:6379 # Redis connection address
+      addrs:
+        - redis:6379 # Redis connection address
       password:
       db_index: 0
       dial_timeout: 1s

@@ -12,8 +12,8 @@ import (
 )
 
 func NewRedisCmd(conf *conf.Bootstrap, m *Metric) (redis.Cmdable, func(), error) {
-	client := redis.NewClient(&redis.Options{
-		Addr:         conf.Data.Redis.Addr,
+	client := redis.NewUniversalClient(&redis.UniversalOptions{
+		Addrs:        conf.Data.Redis.Addrs,
 		Password:     conf.Data.Redis.Password,
 		DB:           int(conf.Data.Redis.DbIndex),
 		DialTimeout:  conf.Data.Redis.DialTimeout.AsDuration(),
@@ -26,7 +26,7 @@ func NewRedisCmd(conf *conf.Bootstrap, m *Metric) (redis.Cmdable, func(), error)
 		return nil, nil, err
 	}
 	client.AddHook(NewRedisMetricHook(
-		WithRedisEndpointAddr(conf.Data.Redis.Addr),
+		WithRedisEndpointAddr(conf.Data.Redis.Addrs...),
 		WithRedisRequestsDuration(m.CacheDurationSec),
 	))
 	timeout, cancelFunc := context.WithTimeout(context.Background(), time.Second*2)

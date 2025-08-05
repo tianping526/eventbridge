@@ -25,7 +25,7 @@ import (
 const (
 	maxFanout = 20
 
-	// histogram: job_rule_execute_duration_sec_bucket{"name", "event", "operation"}
+	// histogram: job_rule_execute_duration_seconds_bucket{"name", "event", "operation"}
 	// counter:  job_rule_execute_total{"name", "event", "operation", "result"}
 	metricLabelRuleName  = "name"
 	metricLabelEvent     = "event"
@@ -118,7 +118,7 @@ func WithExecuteTotal(c metric.Int64Counter) Option {
 }
 
 type options struct {
-	// histogram: job_rule_execute_duration_sec_bucket{"name", "event", "operation"}
+	// histogram: job_rule_execute_duration_seconds_bucket{"name", "event", "operation"}
 	executeDuration metric.Float64Histogram
 	// counter: job_rule_execute_total{"name", "event", "operation", "result"}
 	executeTotal metric.Int64Counter

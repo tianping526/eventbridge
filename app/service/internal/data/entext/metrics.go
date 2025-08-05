@@ -39,7 +39,7 @@ func WithEntEndpointAddr(a string) EntMetricsHookOption {
 }
 
 type entMetricsHookOptions struct {
-	// histogram: db_client_requests_duration_sec_bucket{"name", "Addr", "command", "res"}
+	// histogram: db_client_requests_duration_seconds_bucket{"name", "addr", "command", "res"}
 	requestsDuration metric.Float64Histogram
 	Addr             string
 }
