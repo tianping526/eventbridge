@@ -2,8 +2,8 @@ package data
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/go-kratos/kratos/v2/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -15,7 +15,10 @@ import (
 	"github.com/tianping526/eventbridge/app/job/internal/conf"
 )
 
-func NewTracerProvider(ai *conf.AppInfo, conf *conf.Bootstrap) (trace.TracerProvider, func(), error) {
+func NewTracerProvider(
+	ai *conf.AppInfo, conf *conf.Bootstrap, l log.Logger,
+) (trace.TracerProvider, func(), error) {
+	logger := log.NewHelper(log.With(l, "module", "data/trace", "caller", log.DefaultCaller))
 	if conf.Trace == nil {
 		return noop.NewTracerProvider(), func() {}, nil
 	}
@@ -37,7 +40,7 @@ func NewTracerProvider(ai *conf.AppInfo, conf *conf.Bootstrap) (trace.TracerProv
 	return tp, func() {
 		err2 := tp.Shutdown(context.Background())
 		if err2 != nil {
-			fmt.Printf("close trace provider(%s) error(%s))", conf.Trace.EndpointUrl, err2)
+			logger.Errorf("error shutting down tracer provider: %v", err2)
 		}
 	}, nil
 }
