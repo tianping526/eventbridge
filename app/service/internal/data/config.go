@@ -23,7 +23,7 @@ func NewConfig(ai *conf.AppInfo) (config.Config, func(), error) {
 	return fc, func() {
 		err := fc.Close()
 		if err != nil {
-			fmt.Printf("close file config(%s) error(%s))", ai.FlagConf, err)
+			fmt.Printf("close file config(%s) error(%s))\n", ai.FlagConf, err)
 		}
 	}, nil
 }

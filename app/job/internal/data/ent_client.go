@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect"
 	entSql "entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/schema"
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/signalfx/splunk-otel-go/instrumentation/database/sql/splunksql"
 
 	"github.com/tianping526/eventbridge/app/job/internal/conf"
@@ -22,7 +23,10 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
-func NewEntClient(conf *conf.Bootstrap, m *Metric) (*ent.Client, func(), error) {
+func NewEntClient(
+	conf *conf.Bootstrap, m *Metric, l log.Logger,
+) (*ent.Client, func(), error) {
+	logger := log.NewHelper(log.With(l, "module", "data/ent", "caller", log.DefaultCaller))
 	var (
 		db  *sql.DB
 		err error
@@ -78,7 +82,7 @@ func NewEntClient(conf *conf.Bootstrap, m *Metric) (*ent.Client, func(), error) 
 	return ec, func() {
 		err = ec.Close()
 		if err != nil {
-			fmt.Printf("failed closing ent client: %v", err)
+			logger.Errorf("failed closing ent client: %v", err)
 		}
 	}, nil
 }

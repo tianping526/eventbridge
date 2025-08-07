@@ -5,13 +5,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/tianping526/eventbridge/app/service/internal/conf"
 )
 
-func NewRedisCmd(conf *conf.Bootstrap, m *Metric) (redis.Cmdable, func(), error) {
+func NewRedisCmd(
+	conf *conf.Bootstrap, m *Metric, l log.Logger,
+) (redis.Cmdable, func(), error) {
+	logger := log.NewHelper(log.With(l, "module", "data/redis", "caller", log.DefaultCaller))
 	client := redis.NewUniversalClient(&redis.UniversalOptions{
 		Addrs:        conf.Data.Redis.Addrs,
 		Password:     conf.Data.Redis.Password,
@@ -38,7 +42,7 @@ func NewRedisCmd(conf *conf.Bootstrap, m *Metric) (redis.Cmdable, func(), error)
 	return client, func() {
 		err = client.Close()
 		if err != nil {
-			fmt.Printf("failed closing redis client: %v", err)
+			logger.Errorf("failed closing redis client: %v", err)
 		}
 	}, nil
 }

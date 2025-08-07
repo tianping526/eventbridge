@@ -73,7 +73,7 @@ func NewLogger(ai *conf.AppInfo, cfg *conf.Bootstrap) (log.Logger, func(), error
 		closes = append(closes, func() {
 			err := lg.Close()
 			if err != nil {
-				fmt.Printf("close lumberjack logger(%s) error(%s))", out.Path, err)
+				fmt.Printf("close lumberjack logger(%s) error(%s))\n", out.Path, err)
 			}
 		})
 	}
@@ -114,7 +114,7 @@ func NewLogger(ai *conf.AppInfo, cfg *conf.Bootstrap) (log.Logger, func(), error
 	return logger, func() {
 		err := zl.Sync()
 		if err != nil {
-			fmt.Printf("sync logger error(%s)", err)
+			fmt.Printf("sync logger error(%s)\n", err)
 		}
 		for _, c := range closes {
 			c()
