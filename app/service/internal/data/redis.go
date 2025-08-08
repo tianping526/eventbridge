@@ -17,14 +17,15 @@ func NewRedisCmd(
 ) (redis.Cmdable, func(), error) {
 	logger := log.NewHelper(log.With(l, "module", "data/redis", "caller", log.DefaultCaller))
 	client := redis.NewUniversalClient(&redis.UniversalOptions{
-		Addrs:          conf.Data.Redis.Addrs,
-		MasterName:     conf.Data.Redis.MasterName,
-		Password:       conf.Data.Redis.Password,
-		DB:             int(conf.Data.Redis.DbIndex),
-		DialTimeout:    conf.Data.Redis.DialTimeout.AsDuration(),
-		ReadTimeout:    conf.Data.Redis.ReadTimeout.AsDuration(),
-		WriteTimeout:   conf.Data.Redis.WriteTimeout.AsDuration(),
-		RouteByLatency: true,
+		Addrs:            conf.Data.Redis.Addrs,
+		MasterName:       conf.Data.Redis.MasterName,
+		Password:         conf.Data.Redis.Password,
+		SentinelPassword: conf.Data.Redis.Password,
+		DB:               int(conf.Data.Redis.DbIndex),
+		DialTimeout:      conf.Data.Redis.DialTimeout.AsDuration(),
+		ReadTimeout:      conf.Data.Redis.ReadTimeout.AsDuration(),
+		WriteTimeout:     conf.Data.Redis.WriteTimeout.AsDuration(),
+		RouteByLatency:   true,
 	})
 	// Enable tracing instrumentation.
 	err := redisotel.InstrumentTracing(client)
