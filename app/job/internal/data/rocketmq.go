@@ -29,8 +29,8 @@ import (
 const (
 	rmqReqTimeout = 3 * time.Second
 
-	metricLabelBusName  = "name"
-	metricLabelBusTopic = "topic"
+	metricLabelBusName  = "bus_name"
+	metricLabelBusTopic = "bus_topic"
 )
 
 func init() {
