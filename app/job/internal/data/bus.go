@@ -340,9 +340,9 @@ func (bs *buses) Send(ctx context.Context, eventExt *rule.EventExt) error {
 
 	b := v.(*bus)
 	if eventExt.RetryStrategy == v1.RetryStrategy_RETRY_STRATEGY_BACKOFF {
-		return b.targetExpDecayMQProducer.Send(ctx, b.targetExpDecayTopic, b.mode, eventExt)
+		return b.targetBackoffMQProducer.Send(ctx, b.targetBackoffTopic, b.mode, eventExt)
 	}
-	return b.targetBackoffMQProducer.Send(ctx, b.targetBackoffTopic, b.mode, eventExt)
+	return b.targetExpDecayMQProducer.Send(ctx, b.targetExpDecayTopic, b.mode, eventExt)
 }
 
 func (bs *buses) Receive(ctx context.Context, handler event.Handler) error {
