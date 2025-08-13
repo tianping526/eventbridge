@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"os"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -91,7 +90,7 @@ type rocketMQConsumer struct {
 	busName  string
 	busTopic string
 	c        rmqClient.SimpleConsumer
-	closed   atomic.Bool
+	closeC   chan struct{}
 }
 
 func NewRocketMQConsumer(logger log.Logger, endpoint string, topic string) (MQConsumer, error) {
@@ -128,7 +127,8 @@ func NewRocketMQConsumer(logger log.Logger, endpoint string, topic string) (MQCo
 			"caller", log.DefaultCaller,
 		)),
 
-		c: simpleConsumer,
+		c:      simpleConsumer,
+		closeC: make(chan struct{}),
 	}, nil
 }
 
@@ -147,18 +147,19 @@ func (r *rocketMQConsumer) Receive(
 				ctx, 1, invisibleDuration,
 			)
 			if err != nil {
-				if r.closed.Load() {
+				select {
+				case <-r.closeC:
 					return nil
-				}
-				var errRPC *rmqClient.ErrRpcStatus
-				ok := errors.As(err, &errRPC)
-				if ok && errRPC.Code == int32(v2.Code_MESSAGE_NOT_FOUND) {
+				default:
+					var errRPC *rmqClient.ErrRpcStatus
+					ok := errors.As(err, &errRPC)
+					if ok && errRPC.Code == int32(v2.Code_MESSAGE_NOT_FOUND) {
+						continue
+					}
+					r.log.Error(err)
 					time.Sleep(time.Second)
 					continue
 				}
-				r.log.Error(err)
-				time.Sleep(time.Second)
-				continue
 			}
 			// handle a message
 			for _, mv := range mvs {
@@ -166,60 +167,72 @@ func (r *rocketMQConsumer) Receive(
 			}
 		}
 	} else { // CONCURRENTLY
-		var running atomic.Int32
 		eg := new(errgroup.Group)
+		defer func() {
+			_ = eg.Wait() // wait for all goroutines to finish
+		}()
+		sem := make(chan struct{}, workers)
 		if runningWorkers != nil {
-			eg.SetLimit(int(workers) + 1)
 			eg.Go(func() error {
+				ticker := time.NewTicker(1 * time.Second)
+				defer ticker.Stop()
 				for {
-					runningWorkers.Record(
-						ctx, int64(running.Load()),
-						metric.WithAttributes(
-							attribute.String(metricLabelBusName, r.busName),
-							attribute.String(metricLabelBusTopic, r.busTopic),
-						),
-					)
-					if r.closed.Load() {
+					select {
+					case <-r.closeC:
 						return nil
+					case <-ticker.C:
+						runningWorkers.Record(
+							ctx, int64(len(sem)),
+							metric.WithAttributes(
+								attribute.String(metricLabelBusName, r.busName),
+								attribute.String(metricLabelBusTopic, r.busTopic),
+							),
+						)
 					}
-					time.Sleep(1 * time.Second)
 				}
 			})
-		} else {
-			eg.SetLimit(int(workers))
 		}
 		for {
-			for running.Load() >= workers {
-				time.Sleep(time.Second)
+			select {
+			case <-r.closeC:
+				return nil
+			case sem <- struct{}{}: // acquire a semaphore
+				<-sem // release a semaphore
 			}
-			maxMessageNum := workers - running.Load()
+			maxMessageNum := workers - int32(len(sem))
 			invisibleDuration := time.Duration(maxMessageNum+10)*time.Second + rmqReqTimeout + timeout
 			mvs, err := r.c.Receive(
 				ctx, maxMessageNum, invisibleDuration,
 			)
 			if err != nil {
-				if r.closed.Load() {
-					_ = eg.Wait()
+				select {
+				case <-r.closeC:
 					return nil
-				}
-				var errRPC *rmqClient.ErrRpcStatus
-				ok := errors.As(err, &errRPC)
-				if ok && errRPC.Code == int32(v2.Code_MESSAGE_NOT_FOUND) {
+				default:
+					var errRPC *rmqClient.ErrRpcStatus
+					ok := errors.As(err, &errRPC)
+					if ok && errRPC.Code == int32(v2.Code_MESSAGE_NOT_FOUND) {
+						continue
+					}
+					r.log.Error(err)
 					time.Sleep(time.Second)
 					continue
 				}
-				r.log.Error(err)
-				time.Sleep(time.Second)
-				continue
 			}
 			// handle a message
 			for _, mv := range mvs {
-				running.Add(1)
-				eg.Go(func() error {
-					defer running.Add(-1)
-					r.messageHandle(ctx, mv, handler, timeout)
+				select {
+				case <-r.closeC:
 					return nil
-				})
+				case sem <- struct{}{}: // acquire a semaphore
+					eg.Go(func() error {
+						defer func() {
+							<-sem // release a semaphore
+						}()
+						r.messageHandle(ctx, mv, handler, timeout)
+						return nil
+					})
+				}
 			}
 		}
 	}
@@ -327,6 +340,11 @@ func (r *rocketMQConsumer) messageHandle(
 }
 
 func (r *rocketMQConsumer) Close() error {
-	r.closed.Store(true)
-	return r.c.GracefulStop()
+	select {
+	case <-r.closeC:
+		return nil
+	default:
+		close(r.closeC)
+		return r.c.GracefulStop()
+	}
 }
