@@ -12,7 +12,7 @@ tool (
 
 require (
 	ariga.io/atlas v0.36.1
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.7-20250717185734-6c6e0d3c608e.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250612022732-297b8109523d.1
 	entgo.io/ent v0.14.5
 	github.com/apache/rocketmq-clients/golang/v5 v5.1.2
 	github.com/cenkalti/backoff/v4 v4.3.0
