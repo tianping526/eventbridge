@@ -64,7 +64,7 @@ func NewMetric(ai *conf.AppInfo) (*Metric, error) {
 	}
 	runningWorkers, err := meter.Int64Gauge(
 		"job_event_running_workers",
-		metric.WithUnit("{worker}"),
+		metric.WithUnit("{count}"),
 		metric.WithDescription("Number of workers per bus that are currently running."),
 	)
 	if err != nil {
