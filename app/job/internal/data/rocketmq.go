@@ -93,7 +93,7 @@ type rocketMQConsumer struct {
 	closeC   chan struct{}
 }
 
-func NewRocketMQConsumer(logger log.Logger, endpoint string, topic string) (MQConsumer, error) {
+func NewRocketMQConsumer(logger log.Logger, busName string, endpoint string, topic string) (MQConsumer, error) {
 	// new simpleConsumer instance
 	simpleConsumer, err := rmqClient.NewSimpleConsumer(&rmqClient.Config{
 		Endpoint: endpoint,
@@ -126,9 +126,10 @@ func NewRocketMQConsumer(logger log.Logger, endpoint string, topic string) (MQCo
 			"module", "rocketmq/consumer",
 			"caller", log.DefaultCaller,
 		)),
-
-		c:      simpleConsumer,
-		closeC: make(chan struct{}),
+		busName:  busName,
+		busTopic: topic,
+		c:        simpleConsumer,
+		closeC:   make(chan struct{}),
 	}, nil
 }
 
