@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: golang:1.24.1
+      image: golang:1.25.0
       env:
         TEST_ENV: CI
 
@@ -63,7 +63,7 @@ jobs:
         run: go generate ./...
 
       - name: Build
-        run: go build -buildvcs=false ./...
+        run: GOEXPERIMENT=greenteagc GOEXPERIMENT=jsonv2 go build -buildvcs=false ./...
 
       - name: Test
         # Because rocketmq DATA RACE turns off the race option
