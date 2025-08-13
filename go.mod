@@ -8,6 +8,7 @@ tool (
 	github.com/go-kratos/kratos/cmd/protoc-gen-go-errors/v2
 	github.com/go-kratos/kratos/cmd/protoc-gen-go-http/v2
 	github.com/google/wire/cmd/wire
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc
 )
 
 require (
@@ -219,6 +220,7 @@ require (
 	golang.org/x/tools v0.36.0 // indirect
 	google.golang.org/api v0.247.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250811230008-5f3141c8851a // indirect
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	pluginrpc.com/pluginrpc v0.5.0 // indirect
 )
