@@ -9,6 +9,7 @@ tool (
 	github.com/go-kratos/kratos/cmd/protoc-gen-go-http/v2
 	github.com/google/wire/cmd/wire
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc
+	google.golang.org/protobuf/cmd/protoc-gen-go
 )
 
 require (
