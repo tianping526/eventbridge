@@ -84,10 +84,10 @@ services:
         ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
         ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
 
-        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterBusDefault -r 3 | tee /dev/stderr | grep success
-        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterDelayBusDefault -r 3 | tee /dev/stderr | grep success
-        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterTargetExpDecayBusDefault -r 176 | tee /dev/stderr | grep success
-        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterTargetBackoffBusDefault -r 3 | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultSource -r 3 | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultSourceDelay -r 3 | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultTargetExpDecay -r 176 | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultTargetBackoff -r 3 | tee /dev/stderr | grep success
 
 networks:
   eventbridge:
@@ -382,10 +382,10 @@ and event processing will no longer be sequential.
 ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
 ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
 
-./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterBusOrderly -r 3 -o true | tee /dev/stderr | grep success                          
-./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterDelayBusOrderly -r 3 | tee /dev/stderr | grep success                     
-./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterTargetExpDecayBusOrderly -r 176 -o true | tee /dev/stderr | grep success          
-./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g mq-proxy8081EBInterTargetBackoffBusOrderly -r 3 -o true | tee /dev/stderr | grep success
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlySource -r 3 -o true | tee /dev/stderr | grep success                          
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlySourceDelay -r 3 | tee /dev/stderr | grep success                     
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlyTargetExpDecay -r 176 -o true | tee /dev/stderr | grep success          
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlyTargetBackoff -r 3 -o true | tee /dev/stderr | grep success
 ```
 
 ## Create Schema
