@@ -61,16 +61,16 @@ func NewConfigBootstrap(c config.Config) (*conf.Bootstrap, error) {
 	if bc.Server.Event == nil {
 		bc.Server.Event = defaultEventConf
 	} else {
-		if bc.Server.Event.SourceTimeout == nil {
+		if bc.Server.Event.SourceTimeout == nil || bc.Server.Event.SourceTimeout.AsDuration() <= 0 {
 			bc.Server.Event.SourceTimeout = defaultEventConf.SourceTimeout
 		}
-		if bc.Server.Event.DelayTimeout == nil {
+		if bc.Server.Event.DelayTimeout == nil || bc.Server.Event.DelayTimeout.AsDuration() <= 0 {
 			bc.Server.Event.DelayTimeout = defaultEventConf.DelayTimeout
 		}
-		if bc.Server.Event.TargetExpDecayTimeout == nil {
+		if bc.Server.Event.TargetExpDecayTimeout == nil || bc.Server.Event.TargetExpDecayTimeout.AsDuration() <= 0 {
 			bc.Server.Event.TargetExpDecayTimeout = defaultEventConf.TargetExpDecayTimeout
 		}
-		if bc.Server.Event.TargetBackoffTimeout == nil {
+		if bc.Server.Event.TargetBackoffTimeout == nil || bc.Server.Event.TargetBackoffTimeout.AsDuration() <= 0 {
 			bc.Server.Event.TargetBackoffTimeout = defaultEventConf.TargetBackoffTimeout
 		}
 		if bc.Server.Event.WorkersPerMqTopic <= 1 {
