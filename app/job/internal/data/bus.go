@@ -25,9 +25,8 @@ import (
 )
 
 const (
-	BusesVersionID         = 1
-	SchemaRocketMQ         = "rocketmq"
-	consumerDefaultTimeout = 1 * time.Second
+	BusesVersionID = 1
+	SchemaRocketMQ = "rocketmq"
 )
 
 var ppg = propagation.NewCompositeTextMapPropagator(
@@ -53,7 +52,7 @@ type MQProducer interface {
 type MQConsumer interface {
 	Receive(
 		ctx context.Context, handler event.Handler, mode v1.BusWorkMode,
-		timeout time.Duration, workers int32, runningWorkers metric.Int64Gauge,
+		timeout time.Duration, workers uint32, runningWorkers metric.Int64Gauge,
 	) error
 	io.Closer
 }
@@ -256,7 +255,7 @@ type buses struct {
 	runningWorkers metric.Int64Gauge
 
 	defaultMQ             *url.URL
-	workersPerMqTopic     int32
+	workersPerMqTopic     uint32
 	sourceTimeout         time.Duration
 	sourceDelayTimeout    time.Duration
 	targetExpDecayTimeout time.Duration
@@ -282,26 +281,6 @@ func NewBuses(
 	if mq.Scheme == "" {
 		mq.Scheme = SchemaRocketMQ
 	}
-	workersPerMqTopic := bc.Data.WorkersPerMqTopic
-	if workersPerMqTopic < 1 {
-		workersPerMqTopic = 256
-	}
-	sourceTimeout := consumerDefaultTimeout
-	if bc.Server.Event.SourceTimeout.IsValid() {
-		sourceTimeout = bc.Server.Event.SourceTimeout.AsDuration()
-	}
-	sourceDelayTimeout := consumerDefaultTimeout
-	if bc.Server.Event.DelayTimeout.IsValid() {
-		sourceDelayTimeout = bc.Server.Event.DelayTimeout.AsDuration()
-	}
-	targetExpDecayTimeout := consumerDefaultTimeout
-	if bc.Server.Event.TargetExpDecayTimeout.IsValid() {
-		targetExpDecayTimeout = bc.Server.Event.TargetExpDecayTimeout.AsDuration()
-	}
-	targetBackoffTimeout := consumerDefaultTimeout
-	if bc.Server.Event.TargetBackoffTimeout.IsValid() {
-		targetBackoffTimeout = bc.Server.Event.TargetBackoffTimeout.AsDuration()
-	}
 	bs := &buses{
 		baseLog: logger,
 		log: log.NewHelper(log.With(
@@ -312,11 +291,11 @@ func NewBuses(
 		runningWorkers: m.RunningWorkers,
 
 		defaultMQ:             mq,
-		workersPerMqTopic:     workersPerMqTopic,
-		sourceTimeout:         sourceTimeout,
-		sourceDelayTimeout:    sourceDelayTimeout,
-		targetExpDecayTimeout: targetExpDecayTimeout,
-		targetBackoffTimeout:  targetBackoffTimeout,
+		workersPerMqTopic:     bc.Server.Event.WorkersPerMqTopic,
+		sourceTimeout:         bc.Server.Event.SourceTimeout.AsDuration(),
+		sourceDelayTimeout:    bc.Server.Event.DelayTimeout.AsDuration(),
+		targetExpDecayTimeout: bc.Server.Event.TargetExpDecayTimeout.AsDuration(),
+		targetBackoffTimeout:  bc.Server.Event.TargetBackoffTimeout.AsDuration(),
 		eg:                    new(errgroup.Group),
 		closed:                make(chan struct{}),
 	}

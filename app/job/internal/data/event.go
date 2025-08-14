@@ -16,11 +16,10 @@ import (
 
 	"github.com/tianping526/eventbridge/app/internal/rule"
 	"github.com/tianping526/eventbridge/app/job/internal/biz"
+	"github.com/tianping526/eventbridge/app/job/internal/conf"
 )
 
 const (
-	maxFanout = 20
-
 	metricPostEventBusName = "bus_name"
 	metricPostEventType    = "event_type"
 	metricPostEventResult  = "result"
@@ -29,18 +28,22 @@ const (
 var otr = otel.Tracer("/app/job/internal/data/event")
 
 type eventRepo struct {
-	log *log.Helper
-	sd  Sender
-	m   *Metric
-	rs  rule.Rules
+	log                 *log.Helper
+	sd                  Sender
+	m                   *Metric
+	rs                  rule.Rules
+	ruleParallelism     int
+	dispatchParallelism int
 }
 
-func NewEventRepo(logger log.Logger, sd Sender, m *Metric, rs rule.Rules) biz.EventRepo {
+func NewEventRepo(logger log.Logger, conf *conf.Bootstrap, sd Sender, m *Metric, rs rule.Rules) biz.EventRepo {
 	return &eventRepo{
-		log: log.NewHelper(log.With(logger, "module", "data/event")),
-		sd:  sd,
-		m:   m,
-		rs:  rs,
+		log:                 log.NewHelper(log.With(logger, "module", "data/event")),
+		sd:                  sd,
+		m:                   m,
+		rs:                  rs,
+		ruleParallelism:     int(conf.Server.Event.RuleParallelism),
+		dispatchParallelism: int(conf.Server.Event.DispatchParallelism),
 	}
 }
 
@@ -72,7 +75,7 @@ func (repo *eventRepo) HandleEvent(ctx context.Context, evt *rule.EventExt) erro
 		}
 	} else {
 		eg, c := errgroup.WithContext(ctx)
-		eg.SetLimit(maxFanout)
+		eg.SetLimit(repo.ruleParallelism)
 		for ruleName, exec := range executors {
 			eg.Go(func() error {
 				return repo.handleSourceEvent(c, ruleName, exec, evt)
@@ -187,7 +190,7 @@ func (repo *eventRepo) handleSourceEvent(
 		}
 	}
 	eg, c := errgroup.WithContext(ctx)
-	eg.SetLimit(maxFanout)
+	eg.SetLimit(repo.dispatchParallelism)
 	for _, targetEvt := range targetEvents {
 		eg.Go(func() error {
 			return repo.dispatchTargetEvent(c, exec, targetEvt)
