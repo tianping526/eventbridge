@@ -7,7 +7,6 @@ import (
 	"math"
 	"math/rand"
 	"os"
-	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -28,8 +27,8 @@ import (
 const (
 	rmqReqTimeout = 3 * time.Second
 
-	metricLabelBusName  = "bus_name"
-	metricLabelBusTopic = "bus_topic"
+	metricLabelBusName      = "bus_name"
+	metricLabelBusTopicType = "topic_type"
 )
 
 func init() {
@@ -87,20 +86,22 @@ func (r *rocketMQProducer) Close() error {
 type rocketMQConsumer struct {
 	log *log.Helper
 
-	busName  string
-	busTopic string
-	c        rmqClient.SimpleConsumer
-	closeC   chan struct{}
+	busName   string
+	topicType string
+	c         rmqClient.SimpleConsumer
+	closeC    chan struct{}
 }
 
-func NewRocketMQConsumer(logger log.Logger, busName string, endpoint string, topic string) (MQConsumer, error) {
+func NewRocketMQConsumer(
+	logger log.Logger, busName string, topicType string, endpoint string, topic string,
+) (MQConsumer, error) {
 	// new simpleConsumer instance
 	simpleConsumer, err := rmqClient.NewSimpleConsumer(&rmqClient.Config{
 		Endpoint: endpoint,
 		ConsumerGroup: fmt.Sprintf(
 			"%s%s",
-			strings.Replace(strings.ReplaceAll(endpoint, ".", ""), ":", "", 1),
-			topic,
+			busName,
+			topicType,
 		),
 		Credentials: &credentials.SessionCredentials{
 			AccessKey:    "",
@@ -126,10 +127,10 @@ func NewRocketMQConsumer(logger log.Logger, busName string, endpoint string, top
 			"module", "rocketmq/consumer",
 			"caller", log.DefaultCaller,
 		)),
-		busName:  busName,
-		busTopic: topic,
-		c:        simpleConsumer,
-		closeC:   make(chan struct{}),
+		busName:   busName,
+		topicType: topicType,
+		c:         simpleConsumer,
+		closeC:    make(chan struct{}),
 	}, nil
 }
 
@@ -186,7 +187,7 @@ func (r *rocketMQConsumer) Receive(
 							ctx, int64(len(sem)),
 							metric.WithAttributes(
 								attribute.String(metricLabelBusName, r.busName),
-								attribute.String(metricLabelBusTopic, r.busTopic),
+								attribute.String(metricLabelBusTopicType, r.topicType),
 							),
 						)
 					}
