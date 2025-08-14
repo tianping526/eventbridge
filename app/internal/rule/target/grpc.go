@@ -128,7 +128,6 @@ func (d *gRPCDispatcher) Dispatch(ctx context.Context, event *rule.EventExt) err
 				recovery.Recovery(),
 			),
 			t.WithTimeout(0),
-			t.WithOptions(grpc.WithDisableHealthCheck()),
 		)
 		if err != nil {
 			return err
