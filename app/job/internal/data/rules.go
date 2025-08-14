@@ -16,6 +16,7 @@ import (
 	"github.com/tianping526/eventbridge/app/internal/rule/pattern"
 	"github.com/tianping526/eventbridge/app/internal/rule/target"
 	"github.com/tianping526/eventbridge/app/internal/rule/transform"
+	"github.com/tianping526/eventbridge/app/job/internal/conf"
 	"github.com/tianping526/eventbridge/app/job/internal/data/ent"
 	entRule "github.com/tianping526/eventbridge/app/job/internal/data/ent/rule"
 	"github.com/tianping526/eventbridge/app/job/internal/data/ent/version"
@@ -176,7 +177,7 @@ func (rr *ruleReflector) fetchEnableRules() ([]*rule.Rule, error) {
 	return rules, nil
 }
 
-func NewRules(logger log.Logger, db *ent.Client, m *Metric) (rule.Rules, func(), error) {
+func NewRules(logger log.Logger, conf *conf.Bootstrap, db *ent.Client, m *Metric) (rule.Rules, func(), error) {
 	reflector, err := NewRuleReflector(logger, db)
 	if err != nil {
 		return nil, nil, err
@@ -191,5 +192,6 @@ func NewRules(logger log.Logger, db *ent.Client, m *Metric) (rule.Rules, func(),
 		),
 		rule.WithExecuteDuration(m.RuleExecSec),
 		rule.WithExecuteTotal(m.RuleExecTotal),
+		rule.WithTransformParallelism(int(conf.Server.Event.TransformParallelism)),
 	)
 }

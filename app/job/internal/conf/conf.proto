@@ -36,6 +36,25 @@ message Server {
     google.protobuf.Duration delay_timeout = 2;
     google.protobuf.Duration target_exp_decay_timeout = 3;
     google.protobuf.Duration target_backoff_timeout = 4;
+    // The number of workers per message queue topic.
+    // A data bus has 4 message queue topics, so this means that there are
+    // 4 * workers_per_mq_topic workers in total per data bus.
+    // Ignore this if the data bus mode is BusWorkMode_BUS_WORK_MODE_ORDERLY.
+    uint32 workers_per_mq_topic = 5;
+    // The number of parallel rules that can be applied to a message.
+    // so the total number of rules that can be processed in parallel is
+    // 4 * workers_per_mq_topic * rule_parallelism per data bus.
+    uint32 rule_parallelism = 6;
+    // A rule can transform transform_parallelism target events in parallel.
+    // The total number of target events that can be transformed in parallel is
+    // 4 * workers_per_mq_topic * rule_parallelism * transform_parallelism per
+    // data bus.
+    uint32 transform_parallelism = 7;
+    // A rule can dispatch dispatch_parallelism target events in parallel.
+    // The total number of target events that can be dispatched in parallel is
+    // 4 * workers_per_mq_topic * rule_parallelism * dispatch_parallelism per
+    // data bus.
+    uint32 dispatch_parallelism = 8;
   }
   HTTP http = 1;
   Event event = 2;
@@ -45,14 +64,13 @@ message Data {
   message Database {
     string driver = 1;
     string source = 2;
-    int64 max_open = 3;
-    int64 max_idle = 4;
+    uint32 max_open = 3;
+    uint32 max_idle = 4;
     google.protobuf.Duration conn_max_life_time = 5;
     google.protobuf.Duration conn_max_idle_time = 6;
   }
   Database database = 1;
   string default_mq = 2;
-  int32 workers_per_mq_topic = 3;
 }
 
 message Log {
@@ -72,27 +90,27 @@ message Log {
     // This will log the first initial log entries with the same level and message
     // in a one second interval as-is. Following that, it will allow through
     // every thereafter log entry with the same level and message in that interval.
-    int32 initial = 1;
+    uint32 initial = 1;
     // If thereafter is zero, the Core will drop all log entries after the first N
     // in that interval.
-    int32 thereafter = 2;
+    uint32 thereafter = 2;
   }
 
   message Output {
     message Rotate {
       // max_size is the maximum size in megabytes of the log file before it gets
       // rotated. It defaults to 100 megabytes.
-      int32 max_size = 2;
+      uint32 max_size = 2;
       // max_age is the maximum number of days to retain old log files based on the
       // timestamp encoded in their filename.  Note that a day is defined as 24
       // hours and may not exactly correspond to calendar days due to daylight
       // savings, leap seconds, etc. The default is not to remove old log files
       // based on age.
-      int32 max_age = 3;
+      uint32 max_age = 3;
       // max_backups is the maximum number of old log files to retain.  The default
       // is to retain all old log files (though max_age may still cause them to get
       // deleted.)
-      int32 max_backups = 4;
+      uint32 max_backups = 4;
       // compress determines if the rotated log files should be compressed
       // using gzip. The default is not to perform compression.
       bool compress = 5;

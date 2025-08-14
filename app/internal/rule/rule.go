@@ -23,8 +23,6 @@ import (
 )
 
 const (
-	maxFanout = 20
-
 	// histogram: job_rule_execute_duration_seconds_bucket{"name", "event", "operation"}
 	// counter:  job_rule_execute_total{"name", "event", "operation", "result"}
 	metricLabelRuleName  = "name"
@@ -100,20 +98,29 @@ type (
 	NewDispatcherFunc  func(ctx context.Context, logger log.Logger, Target *Target) (Dispatcher, error)
 )
 
-// Option is metrics option.
+// Option is a functional option for configuring the executor.
 type Option func(*options)
 
-// WithExecuteDuration with execute duration(s).
+// WithExecuteDuration with executed duration histogram.
 func WithExecuteDuration(c metric.Float64Histogram) Option {
 	return func(o *options) {
 		o.executeDuration = c
 	}
 }
 
-// WithExecuteTotal with executed counter.
+// WithExecuteTotal with executed total counter.
 func WithExecuteTotal(c metric.Int64Counter) Option {
 	return func(o *options) {
 		o.executeTotal = c
+	}
+}
+
+// WithTransformParallelism sets the parallelism for transforming events.
+func WithTransformParallelism(parallelism int) Option {
+	return func(o *options) {
+		if parallelism >= 2 { // nolint:mnd
+			o.transformParallelism = parallelism
+		}
 	}
 }
 
@@ -122,6 +129,8 @@ type options struct {
 	executeDuration metric.Float64Histogram
 	// counter: job_rule_execute_total{"name", "event", "operation", "result"}
 	executeTotal metric.Int64Counter
+	// transformParallelism is the parallelism for transforming events.
+	transformParallelism int
 }
 
 type executor struct {
@@ -151,7 +160,9 @@ func NewNewExecutorFunc(
 	ndf NewDispatcherFunc,
 ) NewExecutorFunc {
 	return func(ctx context.Context, logger log.Logger, r *Rule, opts ...Option) (Executor, error) {
-		ops := &options{}
+		ops := &options{
+			transformParallelism: 20, // default parallelism
+		}
 		for _, o := range opts {
 			o(ops)
 		}
@@ -247,9 +258,7 @@ func (d *executor) Transform(ctx context.Context, event *EventExt) ([]*EventExt,
 	targetEvents := make([]*EventExt, 0, len(transformers))
 	targetEventsLock := sync.Mutex{}
 	eg := new(errgroup.Group)
-	if len(transformers) > maxFanout {
-		eg.SetLimit(maxFanout)
-	}
+	eg.SetLimit(d.opts.transformParallelism)
 
 	for _, t := range transformers {
 		eg.Go(func() error {

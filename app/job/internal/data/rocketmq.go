@@ -138,7 +138,7 @@ func (r *rocketMQConsumer) Receive(
 	handler event.Handler,
 	mode v1.BusWorkMode,
 	timeout time.Duration,
-	workers int32,
+	workers uint32,
 	runningWorkers metric.Int64Gauge,
 ) error {
 	if mode == v1.BusWorkMode_BUS_WORK_MODE_ORDERLY {
@@ -200,7 +200,7 @@ func (r *rocketMQConsumer) Receive(
 			case sem <- struct{}{}: // acquire a semaphore
 				<-sem // release a semaphore
 			}
-			maxMessageNum := workers - int32(len(sem))
+			maxMessageNum := int32(workers) - int32(len(sem))
 			invisibleDuration := time.Duration(maxMessageNum+10)*time.Second + rmqReqTimeout + timeout
 			mvs, err := r.c.Receive(
 				ctx, maxMessageNum, invisibleDuration,
