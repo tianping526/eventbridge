@@ -107,7 +107,7 @@ func TestPostEventOrderly(t *testing.T) { //nolint:gocyclo
 	mq, _ := url.Parse(bc.Data.DefaultMq)
 	producer, err := rmqClient.NewProducer(
 		&rmqClient.Config{
-			Endpoint: mq.Host,
+			Endpoint: fmt.Sprintf("dns:///%s", mq.Host),
 			Credentials: &credentials.SessionCredentials{
 				AccessKey:    "",
 				AccessSecret: "",

@@ -44,7 +44,7 @@ type rocketMQProducer struct {
 func NewRocketMQProducer(endpoint string) (MQProducer, error) {
 	producer, err := rmqClient.NewProducer(
 		&rmqClient.Config{
-			Endpoint: endpoint,
+			Endpoint: fmt.Sprintf("dns:///%s", endpoint),
 			Credentials: &credentials.SessionCredentials{
 				AccessKey:    "",
 				AccessSecret: "",
@@ -97,7 +97,7 @@ func NewRocketMQConsumer(
 ) (MQConsumer, error) {
 	// new simpleConsumer instance
 	simpleConsumer, err := rmqClient.NewSimpleConsumer(&rmqClient.Config{
-		Endpoint: endpoint,
+		Endpoint: fmt.Sprintf("dns:///%s", endpoint),
 		ConsumerGroup: fmt.Sprintf(
 			"%s%s",
 			busName,
