@@ -14,8 +14,6 @@ import (
 	"entgo.io/ent/dialect/sql/schema"
 	"github.com/sony/sonyflake"
 
-	v1 "github.com/tianping526/eventbridge/apis/api/eventbridge/service/v1"
-	"github.com/tianping526/eventbridge/app/service/internal/data/ent/bus"
 	"github.com/tianping526/eventbridge/app/service/internal/data/ent/version"
 )
 
@@ -90,19 +88,6 @@ func SeedingHook(next schema.Applier) schema.Applier {
 					continue
 				}
 				switch m.T.Name {
-				case bus.Table:
-					// Insert bus data seeding.
-					plan.Changes = append(plan.Changes, &migrate.Change{
-						Cmd: fmt.Sprintf(
-							"INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s, %s, %s) VALUES "+
-								"(100000000, 'Default', %d, 'EBInterBusDefault', 'EBInterDelayBusDefault', "+
-								"'EBInterTargetExpDecayBusDefault', 'EBInterTargetBackoffBusDefault', NOW(), NOW())",
-							bus.Table, bus.FieldID, bus.FieldName, bus.FieldMode,
-							bus.FieldSourceTopic, bus.FieldSourceDelayTopic, bus.FieldTargetExpDecayTopic,
-							bus.FieldTargetBackoffTopic, bus.FieldCreateTime, bus.FieldUpdateTime,
-							v1.BusWorkMode_BUS_WORK_MODE_CONCURRENTLY,
-						),
-					})
 				case version.Table:
 					// Insert version data seeding.
 					plan.Changes = append(plan.Changes, &migrate.Change{

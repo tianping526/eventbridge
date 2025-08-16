@@ -26,7 +26,6 @@ bootstrap:
       dial_timeout: 1s
       read_timeout: 0.2s
       write_timeout: 0.2s
-    default_mq: rocketmq://127.0.0.1:8081
   auth:
     key: ""
 #  log:

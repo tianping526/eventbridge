@@ -23,10 +23,10 @@ type rocketMQProducer struct {
 	p rmqClient.Producer
 }
 
-func NewRocketMQProducer(endpoint string) (MQProducer, error) {
+func NewRocketMQProducer(endpoints string) (MQProducer, error) {
 	producer, err := rmqClient.NewProducer(
 		&rmqClient.Config{
-			Endpoint: endpoint,
+			Endpoint: endpoints,
 			Credentials: &credentials.SessionCredentials{
 				AccessKey:    "",
 				AccessSecret: "",

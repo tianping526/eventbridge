@@ -174,7 +174,6 @@ bootstrap:
       dial_timeout: 1s
       read_timeout: 0.2s
       write_timeout: 0.2s
-    default_mq: rocketmq://mq-proxy:8081 # RocketMQ Proxy 服务地址
 ```
 
 查看服务状态：
@@ -218,7 +217,6 @@ bootstrap:
       max_idle: 10
       conn_max_life_time: 0s
       conn_max_idle_time: 300s
-    default_mq: rocketmq://mq-proxy:8081 # RocketMQ Proxy 服务地址
 ```
 
 查看服务状态：

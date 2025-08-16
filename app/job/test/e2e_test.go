@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"reflect"
@@ -65,8 +64,10 @@ func TestPostEventOrderly(t *testing.T) { //nolint:gocyclo
 		FlagConf: "../configs",
 		Id:       "test",
 	}
+	rocketmqEndpoint := "127.0.0.1:8081"
 	if os.Getenv("TEST_ENV") == "CI" {
 		appInfo.FlagConf = "./configs"
+		rocketmqEndpoint = "proxy:8081"
 	}
 	app, cleanup, err := wireApp(appInfo)
 	if err != nil {
@@ -104,10 +105,9 @@ func TestPostEventOrderly(t *testing.T) { //nolint:gocyclo
 	}()
 
 	// init rocketmq producer
-	mq, _ := url.Parse(bc.Data.DefaultMq)
 	producer, err := rmqClient.NewProducer(
 		&rmqClient.Config{
-			Endpoint: mq.Host,
+			Endpoint: rocketmqEndpoint,
 			Credentials: &credentials.SessionCredentials{
 				AccessKey:    "",
 				AccessSecret: "",

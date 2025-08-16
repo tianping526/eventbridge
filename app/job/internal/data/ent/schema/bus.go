@@ -34,17 +34,17 @@ func (Bus) Fields() []ent.Field {
 		field.Uint8("mode").
 			Comment("event bus mode. 1-concurrently, 2-orderly"),
 		field.String("source_topic").
-			MaxLen(128).
-			Comment("source event topic name"),
+			MaxLen(256).
+			Comment("source event topic"),
 		field.String("source_delay_topic").
-			MaxLen(128).
-			Comment("source event delay topic name"),
+			MaxLen(256).
+			Comment("source event delay topic"),
 		field.String("target_exp_decay_topic").
-			MaxLen(128).
-			Comment("target event exponential decay topic name"),
+			MaxLen(256).
+			Comment("target event exponential decay topic"),
 		field.String("target_backoff_topic").
-			MaxLen(128).
-			Comment("target event backoff topic name"),
+			MaxLen(256).
+			Comment("target event backoff topic"),
 	}
 }
 
