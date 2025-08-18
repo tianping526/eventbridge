@@ -6,9 +6,12 @@ on:
     tags: [ '[0-9]+.[0-9]+.[0-9]+*' ]
 
 jobs:
-  build-and-push-image:
-    name: Build and push Docker image
+  build-and-push:
+    name: Build and push ${{ matrix.app }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [ service, job ]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -17,7 +20,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24.6
+          go-version: 1.25.0
 
       - name: Generate API
         run: go tool buf generate
@@ -40,26 +43,16 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push eb-service
+      - name: Build and push eb-${{ matrix.app }}
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/eb-service:${{ steps.meta.outputs.version }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/eb-${{ matrix.app }}:${{ steps.meta.outputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
-            APP_NAME=service
-
-      - name: Build and push eb-job
-        uses: docker/build-push-action@v6
-        with:
-          platforms: linux/amd64,linux/arm64
-          context: .
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/eb-job:${{ steps.meta.outputs.version }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VERSION=${{ steps.meta.outputs.version }}
-            APP_NAME=job
+            APP_NAME=${{ matrix.app }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
