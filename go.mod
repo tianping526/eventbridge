@@ -226,4 +226,4 @@ require (
 	pluginrpc.com/pluginrpc v0.5.0 // indirect
 )
 
-replace github.com/apache/rocketmq-clients/golang/v5 v5.1.2 => github.com/tianping526/rocketmq-clients/golang/v5 v5.0.0-20250815032325-ea1af6a03744
+replace github.com/apache/rocketmq-clients/golang/v5 v5.1.2 => github.com/tianping526/rocketmq-clients/golang/v5 v5.0.0-20250612091445-5c7a9b25d87f
