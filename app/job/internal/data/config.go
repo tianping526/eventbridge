@@ -129,10 +129,5 @@ func NewConfigBootstrap(c config.Config) (*conf.Bootstrap, error) {
 		bc.Data.Database.ConnMaxIdleTime = durationpb.New(300 * time.Second)
 	}
 
-	// data.default_mq
-	if bc.Data.DefaultMq == "" {
-		return nil, fmt.Errorf("data.default_mq config is required")
-	}
-
 	return &bc, nil
 }

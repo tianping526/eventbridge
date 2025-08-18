@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
-	"fmt"
+	"sort"
+	"strings"
 
 	v1 "github.com/tianping526/eventbridge/apis/api/eventbridge/service/v1"
+	"github.com/tianping526/eventbridge/app/service/internal/biz"
 )
 
 func (s *EventBridgeService) ListBus(ctx context.Context, request *v1.ListBusRequest) (*v1.ListBusResponse, error) {
@@ -19,12 +21,28 @@ func (s *EventBridgeService) ListBus(ctx context.Context, request *v1.ListBusReq
 	buses := make([]*v1.ListBusResponse_Bus, 0, len(bs))
 	for _, b := range bs {
 		bus := &v1.ListBusResponse_Bus{
-			Name:                b.Name,
-			Mode:                b.Mode,
-			SourceTopic:         b.SourceTopic,
-			SourceDelayTopic:    b.SourceDelayTopic,
-			TargetExpDecayTopic: b.TargetExpDecayTopic,
-			TargetBackoffTopic:  b.TargetBackoffTopic,
+			Name: b.Name,
+			Mode: b.Mode,
+			Source: &v1.MQTopic{
+				MqType:    b.Source.Type,
+				Endpoints: strings.Split(b.Source.Endpoints, ";"),
+				Topic:     b.Source.Topic,
+			},
+			SourceDelay: &v1.MQTopic{
+				MqType:    b.SourceDelay.Type,
+				Endpoints: strings.Split(b.SourceDelay.Endpoints, ";"),
+				Topic:     b.SourceDelay.Topic,
+			},
+			TargetExpDecay: &v1.MQTopic{
+				MqType:    b.TargetExpDecay.Type,
+				Endpoints: strings.Split(b.TargetExpDecay.Endpoints, ";"),
+				Topic:     b.TargetExpDecay.Topic,
+			},
+			TargetBackoff: &v1.MQTopic{
+				MqType:    b.TargetBackoff.Type,
+				Endpoints: strings.Split(b.TargetBackoff.Endpoints, ";"),
+				Topic:     b.TargetBackoff.Topic,
+			},
 		}
 		buses = append(buses, bus)
 	}
@@ -34,36 +52,68 @@ func (s *EventBridgeService) ListBus(ctx context.Context, request *v1.ListBusReq
 	}, nil
 }
 
+func deduplicateStrings(input []string) []string {
+	seen := make(map[string]struct{})
+	result := make([]string, 0, len(input))
+	for _, v := range input {
+		if _, ok := seen[v]; !ok {
+			seen[v] = struct{}{}
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
 func (s *EventBridgeService) CreateBus(
 	ctx context.Context, request *v1.CreateBusRequest,
 ) (*v1.CreateBusResponse, error) {
-	sn := fmt.Sprintf("EBInterBus%s", request.Name)
-	sdn := fmt.Sprintf("EBInterDelayBus%s", request.Name)
-	ten := fmt.Sprintf("EBInterTargetExpDecayBus%s", request.Name)
-	tbn := fmt.Sprintf("EBInterTargetBackoffBus%s", request.Name)
-	if request.SourceTopic != nil {
-		sn = *request.SourceTopic
+	if request.Source.MqType == v1.MQType_MQ_TYPE_UNSPECIFIED {
+		request.Source.MqType = v1.MQType_MQ_TYPE_ROCKETMQ
 	}
-	if request.SourceDelayTopic != nil {
-		sdn = *request.SourceDelayTopic
+	if request.SourceDelay.MqType == v1.MQType_MQ_TYPE_UNSPECIFIED {
+		request.SourceDelay.MqType = v1.MQType_MQ_TYPE_ROCKETMQ
 	}
-	if request.TargetExpDecayTopic != nil {
-		ten = *request.TargetExpDecayTopic
+	if request.TargetExpDecay.MqType == v1.MQType_MQ_TYPE_UNSPECIFIED {
+		request.TargetExpDecay.MqType = v1.MQType_MQ_TYPE_ROCKETMQ
 	}
-	if request.TargetBackoffTopic != nil {
-		tbn = *request.TargetBackoffTopic
+	if request.TargetBackoff.MqType == v1.MQType_MQ_TYPE_UNSPECIFIED {
+		request.TargetBackoff.MqType = v1.MQType_MQ_TYPE_ROCKETMQ
 	}
 	if request.Mode == v1.BusWorkMode_BUS_WORK_MODE_UNSPECIFIED {
 		request.Mode = v1.BusWorkMode_BUS_WORK_MODE_CONCURRENTLY
 	}
+	request.Source.Endpoints = deduplicateStrings(request.Source.Endpoints)
+	sort.Strings(request.Source.Endpoints)
+	request.SourceDelay.Endpoints = deduplicateStrings(request.SourceDelay.Endpoints)
+	sort.Strings(request.SourceDelay.Endpoints)
+	request.TargetExpDecay.Endpoints = deduplicateStrings(request.TargetExpDecay.Endpoints)
+	sort.Strings(request.TargetExpDecay.Endpoints)
+	request.TargetBackoff.Endpoints = deduplicateStrings(request.TargetBackoff.Endpoints)
+	sort.Strings(request.TargetBackoff.Endpoints)
 	id, err := s.bc.CreateBus(
 		ctx,
 		request.Name,
 		request.Mode,
-		sn,
-		sdn,
-		ten,
-		tbn,
+		biz.MQTopic{
+			Type:      request.Source.MqType,
+			Endpoints: strings.Join(request.Source.Endpoints, ";"),
+			Topic:     request.Source.Topic,
+		},
+		biz.MQTopic{
+			Type:      request.SourceDelay.MqType,
+			Endpoints: strings.Join(request.SourceDelay.Endpoints, ";"),
+			Topic:     request.SourceDelay.Topic,
+		},
+		biz.MQTopic{
+			Type:      request.TargetExpDecay.MqType,
+			Endpoints: strings.Join(request.TargetExpDecay.Endpoints, ";"),
+			Topic:     request.TargetExpDecay.Topic,
+		},
+		biz.MQTopic{
+			Type:      request.TargetBackoff.MqType,
+			Endpoints: strings.Join(request.TargetBackoff.Endpoints, ";"),
+			Topic:     request.TargetBackoff.Topic,
+		},
 	)
 	if err != nil {
 		return nil, err

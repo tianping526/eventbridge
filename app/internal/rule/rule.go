@@ -610,6 +610,7 @@ func (rs *rules) updateRule(r *Rule) error {
 			return err
 		}
 		rs.log.Infof("bus %s rule %s updated", r.BusName, r.Name)
+		return nil
 	}
 
 	// add

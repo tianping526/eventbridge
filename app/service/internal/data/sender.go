@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
 	"sync"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -17,11 +16,6 @@ import (
 	"github.com/tianping526/eventbridge/app/internal/informer"
 	"github.com/tianping526/eventbridge/app/internal/rule"
 	"github.com/tianping526/eventbridge/app/service/internal/biz"
-	"github.com/tianping526/eventbridge/app/service/internal/conf"
-)
-
-const (
-	SchemaRocketMQ = "rocketmq"
 )
 
 var (
@@ -46,13 +40,9 @@ type MQProducer interface {
 }
 
 type bus struct {
-	sourceTopic      string
-	sourceDelayTopic string
-
-	sourceMQ      string // schema://host:port/topic
-	sourceDelayMQ string // schema://host:port/topic
-
-	mode v1.BusWorkMode
+	mode        v1.BusWorkMode
+	source      biz.MQTopic
+	sourceDelay biz.MQTopic
 
 	sourceMQProducer      MQProducer
 	sourceDelayMQProducer MQProducer
@@ -61,31 +51,19 @@ type bus struct {
 type sender struct {
 	log *log.Helper
 
-	defaultMQ *url.URL
-
 	buses sync.Map // map[busName]*bus
 }
 
 func NewSender(
 	logger log.Logger,
 	reflector informer.Reflector,
-	bc *conf.Bootstrap,
 ) (Sender, func(), error) {
-	mq, err := url.Parse(bc.Data.DefaultMq)
-	if err != nil {
-		return nil, nil, err
-	}
-	if mq.Scheme == "" {
-		mq.Scheme = SchemaRocketMQ
-	}
 	s := &sender{
 		log: log.NewHelper(log.With(
 			logger,
 			"module", "sender",
 			"caller", log.DefaultCaller,
 		)),
-
-		defaultMQ: mq,
 	}
 	h := newHandler(logger, reflector, s)
 	i := informer.NewInformer(logger, reflector, h)
@@ -105,7 +83,7 @@ func NewSender(
 			return true
 		})
 		for _, b := range cleanup {
-			err = b.sourceMQProducer.Close()
+			err := b.sourceMQProducer.Close()
 			if err != nil {
 				s.log.Errorf("close sourceMQProducer failed: %v", err)
 			}
@@ -135,38 +113,27 @@ func (s *sender) Send(
 
 	b := v.(*bus)
 	if pubTime.IsValid() {
-		return b.sourceDelayMQProducer.Send(ctx, b.sourceDelayTopic, b.mode, eventExt, pubTime)
+		return b.sourceDelayMQProducer.Send(ctx, b.sourceDelay.Topic, b.mode, eventExt, pubTime)
 	}
-	return b.sourceMQProducer.Send(ctx, b.sourceTopic, b.mode, eventExt, pubTime)
+	return b.sourceMQProducer.Send(ctx, b.source.Topic, b.mode, eventExt, pubTime)
 }
 
 func (s *sender) updateBus(b *biz.Bus) error {
-	source, err := parseTopic(s.defaultMQ, b.SourceTopic)
-	if err != nil {
-		return err
-	}
-	sourceDelay, err := parseTopic(s.defaultMQ, b.SourceDelayTopic)
-	if err != nil {
-		return err
-	}
-
 	v, ok := s.buses.Load(b.Name)
 	if !ok { // Add
 		var sourceMQProducer MQProducer
-		sourceMQProducer, err = s.newMQProducer(source)
+		sourceMQProducer, err := s.newMQProducer(b.Source)
 		if err != nil {
 			return err
 		}
 		var sourceDelayMQProducer MQProducer
-		sourceDelayMQProducer, err = s.newMQProducer(sourceDelay)
+		sourceDelayMQProducer, err = s.newMQProducer(b.SourceDelay)
 		if err != nil {
 			return err
 		}
 		s.buses.Store(b.Name, &bus{
-			sourceTopic:           source.Path,
-			sourceDelayTopic:      sourceDelay.Path,
-			sourceMQ:              source.String(),
-			sourceDelayMQ:         sourceDelay.String(),
+			source:                b.Source,
+			sourceDelay:           b.SourceDelay,
 			mode:                  b.Mode,
 			sourceMQProducer:      sourceMQProducer,
 			sourceDelayMQProducer: sourceDelayMQProducer,
@@ -177,29 +144,27 @@ func (s *sender) updateBus(b *biz.Bus) error {
 	// Update
 	old := v.(*bus)
 	nb := &bus{
-		sourceTopic:      source.Path,
-		sourceDelayTopic: sourceDelay.Path,
-		sourceMQ:         source.String(),
-		sourceDelayMQ:    sourceDelay.String(),
-		mode:             b.Mode,
+		source:      b.Source,
+		sourceDelay: b.SourceDelay,
+		mode:        b.Mode,
 	}
 	var cleanup []io.Closer
-	if old.sourceMQ == nb.sourceMQ {
+	if old.source == nb.source {
 		nb.sourceMQProducer = old.sourceMQProducer
 	} else {
 		var sourceMQProducer MQProducer
-		sourceMQProducer, err = s.newMQProducer(source)
+		sourceMQProducer, err := s.newMQProducer(nb.source)
 		if err != nil {
 			return err
 		}
 		nb.sourceMQProducer = sourceMQProducer
 		cleanup = append(cleanup, old.sourceMQProducer)
 	}
-	if old.sourceDelayMQ == nb.sourceDelayMQ {
+	if old.sourceDelay == nb.sourceDelay {
 		nb.sourceDelayMQProducer = old.sourceDelayMQProducer
 	} else {
 		var sourceDelayMQProducer MQProducer
-		sourceDelayMQProducer, err = s.newMQProducer(sourceDelay)
+		sourceDelayMQProducer, err := s.newMQProducer(nb.sourceDelay)
 		if err != nil {
 			return err
 		}
@@ -208,7 +173,7 @@ func (s *sender) updateBus(b *biz.Bus) error {
 	}
 	s.buses.Store(b.Name, nb)
 	for _, c := range cleanup {
-		err = c.Close()
+		err := c.Close()
 		if err != nil {
 			s.log.Errorf("close mq producer failed: %v", err)
 		}
@@ -216,32 +181,13 @@ func (s *sender) updateBus(b *biz.Bus) error {
 	return nil
 }
 
-func (s *sender) newMQProducer(mq *url.URL) (MQProducer, error) {
-	switch mq.Scheme {
-	case SchemaRocketMQ:
-		return NewRocketMQProducer(mq.Host)
+func (s *sender) newMQProducer(topic biz.MQTopic) (MQProducer, error) {
+	switch topic.Type {
+	case v1.MQType_MQ_TYPE_ROCKETMQ:
+		return NewRocketMQProducer(topic.Endpoints)
 	default:
-		return nil, fmt.Errorf("unsupported mq scheme: %s", mq.Scheme)
+		return nil, fmt.Errorf("unsupported mq type: %s", topic.Type)
 	}
-}
-
-func parseTopic(defaultMQ *url.URL, topic string) (*url.URL, error) {
-	parsedTopic, err := url.Parse(topic)
-	if err != nil {
-		return nil, err
-	}
-
-	if parsedTopic.Scheme == "" {
-		parsedTopic.Scheme = defaultMQ.Scheme
-	}
-	if parsedTopic.Host == "" {
-		parsedTopic.Host = defaultMQ.Host
-	}
-	if parsedTopic.Path == "" {
-		return nil, fmt.Errorf("bus topic is empty")
-	}
-
-	return parsedTopic, nil
 }
 
 func (s *sender) deleteBus(busName string) error {

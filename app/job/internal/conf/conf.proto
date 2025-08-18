@@ -70,7 +70,6 @@ message Data {
     google.protobuf.Duration conn_max_idle_time = 6;
   }
   Database database = 1;
-  string default_mq = 2;
 }
 
 message Log {

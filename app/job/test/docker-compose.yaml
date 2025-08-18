@@ -5,13 +5,6 @@ services:
       POSTGRES_PASSWORD: example
     ports:
       - "5432:5432"
-    depends_on:
-      - redis
-
-  redis:
-    image: redis
-    ports:
-      - "6379:6379"
 
   mq-namesrv:
     restart: always
@@ -66,17 +59,7 @@ services:
         ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
         ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success 
         
-        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
-        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterDelayBusDefault -c DefaultCluster -r 8 -w 8 -a +message.type=DELAY | tee /dev/stderr | grep success
-        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
-        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
-
         ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlySource -r 3 -o true | tee /dev/stderr | grep success                          
         ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlySourceDelay -r 3 | tee /dev/stderr | grep success                     
         ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlyTargetExpDecay -r 176 -o true | tee /dev/stderr | grep success          
         ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlyTargetBackoff -r 3 -o true | tee /dev/stderr | grep success
-
-        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultSource -r 3 | tee /dev/stderr | grep success
-        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultSourceDelay -r 3 | tee /dev/stderr | grep success
-        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultTargetExpDecay -r 176 | tee /dev/stderr | grep success
-        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultTargetBackoff -r 3 | tee /dev/stderr | grep success

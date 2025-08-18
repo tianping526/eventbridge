@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_PASSWORD: example
     ports:
-      - "5432:5432"
+      - "5433:5432"
     depends_on:
       - redis
 
@@ -37,11 +37,13 @@ services:
       - mq-namesrv
       - mq-broker
     ports:
-      - "8081:8081"
+      - "8082:8082"
     environment:
       - NAMESRV_ADDR=mq-namesrv:9876
       - JAVA_OPT_EXT=-server -Xms256m -Xmx256m -Xmn128m
     command: sh mqproxy
+    volumes:
+      - ./rmq/rmq-proxy.json:/home/rocketmq/rocketmq-5.3.1/conf/rmq-proxy.json
 
   create-default-data-bus:
     restart: on-failure

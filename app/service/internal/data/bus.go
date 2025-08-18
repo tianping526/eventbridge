@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -56,31 +57,48 @@ func (repo *busRepo) ListBus(
 	}
 	buses := make([]*biz.Bus, 0, len(bs))
 	for _, b := range bs {
+		var source, sourceDelay, targetExpDecay, targetBackoff biz.MQTopic
+		if err = json.Unmarshal([]byte(b.SourceTopic), &source); err != nil {
+			return nil, 0, fmt.Errorf("unmarshal source topic: %w", err)
+		}
+		if err = json.Unmarshal([]byte(b.SourceDelayTopic), &sourceDelay); err != nil {
+			return nil, 0, fmt.Errorf("unmarshal source delay topic: %w", err)
+		}
+		if err = json.Unmarshal([]byte(b.TargetExpDecayTopic), &targetExpDecay); err != nil {
+			return nil, 0, fmt.Errorf("unmarshal target exp decay topic: %w", err)
+		}
+		if err = json.Unmarshal([]byte(b.TargetBackoffTopic), &targetBackoff); err != nil {
+			return nil, 0, fmt.Errorf("unmarshal target backoff topic: %w", err)
+		}
 		buses = append(buses, &biz.Bus{
-			Name:                b.Name,
-			SourceTopic:         b.SourceTopic,
-			SourceDelayTopic:    b.SourceDelayTopic,
-			TargetExpDecayTopic: b.TargetExpDecayTopic,
-			TargetBackoffTopic:  b.TargetBackoffTopic,
-			Mode:                v1.BusWorkMode(b.Mode),
+			Name:           b.Name,
+			Source:         source,
+			SourceDelay:    sourceDelay,
+			TargetExpDecay: targetExpDecay,
+			TargetBackoff:  targetBackoff,
+			Mode:           v1.BusWorkMode(b.Mode),
 		})
 	}
 	return buses, next, nil
 }
 
 func (repo *busRepo) CreateBus(
-	ctx context.Context, bus string, mode v1.BusWorkMode, sourceTopic string,
-	sourceDelayTopic string, targetExpDecayTopic string, targetBackoffTopic string,
+	ctx context.Context, bus string, mode v1.BusWorkMode, source biz.MQTopic,
+	sourceDelay biz.MQTopic, targetExpDecay biz.MQTopic, targetBackoff biz.MQTopic,
 ) (uint64, error) {
 	var id uint64
+	sourceTopic, _ := json.Marshal(source)
+	sourceDelayTopic, _ := json.Marshal(sourceDelay)
+	targetExpDecayTopic, _ := json.Marshal(targetExpDecay)
+	targetBackoffTopic, _ := json.Marshal(targetBackoff)
 	err := entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {
 		b, te := repo.db.Bus.Create().
 			SetName(bus).
 			SetMode(uint8(mode)).
-			SetSourceTopic(sourceTopic).
-			SetSourceDelayTopic(sourceDelayTopic).
-			SetTargetExpDecayTopic(targetExpDecayTopic).
-			SetTargetBackoffTopic(targetBackoffTopic).
+			SetSourceTopic(string(sourceTopic)).
+			SetSourceDelayTopic(string(sourceDelayTopic)).
+			SetTargetExpDecayTopic(string(targetExpDecayTopic)).
+			SetTargetBackoffTopic(string(targetBackoffTopic)).
 			Save(ctx)
 		if te != nil {
 			if ent.IsConstraintError(te) {

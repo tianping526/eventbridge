@@ -20,7 +20,6 @@ bootstrap:
       max_idle: 10
       conn_max_life_time: 0s
       conn_max_idle_time: 300s
-    default_mq: rocketmq://127.0.0.1:8081
 #  log:
 #    level: INFO # DEBUG, INFO, WARN, ERROR
 #    encoding: JSON # JSON, CONSOLE

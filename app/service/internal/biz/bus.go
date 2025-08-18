@@ -8,21 +8,28 @@ import (
 	v1 "github.com/tianping526/eventbridge/apis/api/eventbridge/service/v1"
 )
 
+// MQTopic should be able to compare values and cannot contain pointers
+type MQTopic struct {
+	Type      v1.MQType `json:"type"`
+	Endpoints string    `json:"endpoints"` // "endpoint1;endpoint2"
+	Topic     string    `json:"topic"`
+}
+
 // Bus should be able to compare values and cannot contain pointers
 type Bus struct {
-	Name                string
-	Mode                v1.BusWorkMode
-	SourceTopic         string
-	SourceDelayTopic    string
-	TargetExpDecayTopic string
-	TargetBackoffTopic  string
+	Name           string
+	Mode           v1.BusWorkMode
+	Source         MQTopic
+	SourceDelay    MQTopic
+	TargetExpDecay MQTopic
+	TargetBackoff  MQTopic
 }
 
 type BusRepo interface {
 	ListBus(ctx context.Context, prefix *string, limit int32, nextToken uint64) ([]*Bus, uint64, error)
 	CreateBus(
-		ctx context.Context, bus string, mode v1.BusWorkMode, sourceTopic string,
-		sourceDelayTopic string, targetExpDecayTopic string, targetBackoffTopic string,
+		ctx context.Context, bus string, mode v1.BusWorkMode, source MQTopic,
+		sourceDelay MQTopic, targetExpDecay MQTopic, targetBackoff MQTopic,
 	) (uint64, error)
 	DeleteBus(ctx context.Context, bus string) error
 }
@@ -51,10 +58,10 @@ func (uc *BusUseCase) ListBus(
 }
 
 func (uc *BusUseCase) CreateBus(
-	ctx context.Context, bus string, mode v1.BusWorkMode, sourceTopic string,
-	sourceDelayTopic string, targetExpDecayTopic string, targetBackoffTopic string,
+	ctx context.Context, bus string, mode v1.BusWorkMode, source MQTopic,
+	sourceDelay MQTopic, targetExpDecay MQTopic, targetBackoff MQTopic,
 ) (uint64, error) {
-	return uc.repo.CreateBus(ctx, bus, mode, sourceTopic, sourceDelayTopic, targetExpDecayTopic, targetBackoffTopic)
+	return uc.repo.CreateBus(ctx, bus, mode, source, sourceDelay, targetExpDecay, targetBackoff)
 }
 
 func (uc *BusUseCase) DeleteBus(ctx context.Context, bus string) error {

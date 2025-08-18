@@ -120,10 +120,5 @@ func NewConfigBootstrap(c config.Config) (*conf.Bootstrap, error) {
 		bc.Data.Redis.WriteTimeout = durationpb.New(200 * time.Millisecond)
 	}
 
-	// data.default_mq
-	if bc.Data.DefaultMq == "" {
-		return nil, fmt.Errorf("data.default_mq config is required")
-	}
-
 	return &bc, nil
 }

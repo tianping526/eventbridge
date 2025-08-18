@@ -1,0 +1,4 @@
+{
+  "rocketMQClusterName": "DefaultCluster",
+  "grpcServerPort": 8082
+}

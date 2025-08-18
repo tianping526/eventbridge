@@ -2,9 +2,9 @@ package data
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
-	"net/url"
 	"sync"
 	"time"
 
@@ -26,8 +26,6 @@ import (
 
 const (
 	BusesVersionID = 1
-
-	SchemaRocketMQ = "rocketmq"
 
 	TopicTypeSource         = "Source"         // source topic
 	TopicTypeSourceDelay    = "SourceDelay"    // source delay topic
@@ -63,14 +61,21 @@ type MQConsumer interface {
 	io.Closer
 }
 
+// MQTopic should be able to compare values and cannot contain pointers
+type MQTopic struct {
+	Type      v1.MQType `json:"type"`
+	Endpoints string    `json:"endpoints"` // "endpoint1;endpoint2"
+	Topic     string    `json:"topic"`
+}
+
 // busInfo should be able to compare values and cannot contain pointers
 type busInfo struct {
-	name                string
-	mode                v1.BusWorkMode
-	sourceTopic         string
-	sourceDelayTopic    string
-	targetExpDecayTopic string
-	targetBackoffTopic  string
+	name           string
+	mode           v1.BusWorkMode
+	source         MQTopic
+	sourceDelay    MQTopic
+	targetExpDecay MQTopic
+	targetBackoff  MQTopic
 }
 
 type busReflector struct {
@@ -218,13 +223,26 @@ func (br *busReflector) fetchBuses() ([]*busInfo, error) {
 			next = 0
 		}
 		for _, b := range bs {
+			var source, sourceDelay, targetExpDecay, targetBackoff MQTopic
+			if err = json.Unmarshal([]byte(b.SourceTopic), &source); err != nil {
+				return nil, fmt.Errorf("unmarshal source topic: %w", err)
+			}
+			if err = json.Unmarshal([]byte(b.SourceDelayTopic), &sourceDelay); err != nil {
+				return nil, fmt.Errorf("unmarshal source delay topic: %w", err)
+			}
+			if err = json.Unmarshal([]byte(b.TargetExpDecayTopic), &targetExpDecay); err != nil {
+				return nil, fmt.Errorf("unmarshal target exp decay topic: %w", err)
+			}
+			if err = json.Unmarshal([]byte(b.TargetBackoffTopic), &targetBackoff); err != nil {
+				return nil, fmt.Errorf("unmarshal target backoff topic: %w", err)
+			}
 			busInfos = append(busInfos, &busInfo{
-				name:                b.Name,
-				mode:                v1.BusWorkMode(b.Mode),
-				sourceTopic:         b.SourceTopic,
-				sourceDelayTopic:    b.SourceDelayTopic,
-				targetExpDecayTopic: b.TargetExpDecayTopic,
-				targetBackoffTopic:  b.TargetBackoffTopic,
+				name:           b.Name,
+				mode:           v1.BusWorkMode(b.Mode),
+				source:         source,
+				sourceDelay:    sourceDelay,
+				targetExpDecay: targetExpDecay,
+				targetBackoff:  targetBackoff,
 			})
 		}
 		if next == 0 {
@@ -235,17 +253,12 @@ func (br *busReflector) fetchBuses() ([]*busInfo, error) {
 }
 
 type bus struct {
-	sourceTopic         string
-	sourceDelayTopic    string
-	targetExpDecayTopic string
-	targetBackoffTopic  string
-
-	sourceMQ         string // schema://host:port/topic
-	sourceDelayMQ    string // schema://host:port/topic
-	targetExpDecayMQ string // schema://host:port/topic
-	targetBackoffMQ  string // schema://host:port/topic
-
 	mode v1.BusWorkMode
+
+	source         MQTopic
+	sourceDelay    MQTopic
+	targetExpDecay MQTopic
+	targetBackoff  MQTopic
 
 	sourceMQConsumer         MQConsumer
 	sourceDelayMQConsumer    MQConsumer
@@ -260,7 +273,6 @@ type buses struct {
 	log            *log.Helper
 	runningWorkers metric.Int64Gauge
 
-	defaultMQ             *url.URL
 	workersPerMqTopic     uint32
 	sourceTimeout         time.Duration
 	sourceDelayTimeout    time.Duration
@@ -280,13 +292,6 @@ func NewBuses(
 	bc *conf.Bootstrap,
 	m *Metric,
 ) (Bus, error) {
-	mq, err := url.Parse(bc.Data.DefaultMq)
-	if err != nil {
-		return nil, err
-	}
-	if mq.Scheme == "" {
-		mq.Scheme = SchemaRocketMQ
-	}
 	bs := &buses{
 		baseLog: logger,
 		log: log.NewHelper(log.With(
@@ -296,7 +301,6 @@ func NewBuses(
 		)),
 		runningWorkers: m.RunningWorkers,
 
-		defaultMQ:             mq,
 		workersPerMqTopic:     bc.Server.Event.WorkersPerMqTopic,
 		sourceTimeout:         bc.Server.Event.SourceTimeout.AsDuration(),
 		sourceDelayTimeout:    bc.Server.Event.DelayTimeout.AsDuration(),
@@ -325,9 +329,9 @@ func (bs *buses) Send(ctx context.Context, eventExt *rule.EventExt) error {
 
 	b := v.(*bus)
 	if eventExt.RetryStrategy == v1.RetryStrategy_RETRY_STRATEGY_BACKOFF {
-		return b.targetBackoffMQProducer.Send(ctx, b.targetBackoffTopic, b.mode, eventExt)
+		return b.targetBackoffMQProducer.Send(ctx, b.targetBackoff.Topic, b.mode, eventExt)
 	}
-	return b.targetExpDecayMQProducer.Send(ctx, b.targetExpDecayTopic, b.mode, eventExt)
+	return b.targetExpDecayMQProducer.Send(ctx, b.targetExpDecay.Topic, b.mode, eventExt)
 }
 
 func (bs *buses) Receive(ctx context.Context, handler event.Handler) error {
@@ -385,71 +389,49 @@ func (bs *buses) Close(ctx context.Context) error {
 }
 
 func (bs *buses) updateBus(b *busInfo) error {
-	source, err := parseTopic(bs.defaultMQ, b.sourceTopic)
-	if err != nil {
-		return err
-	}
-	sourceDelay, err := parseTopic(bs.defaultMQ, b.sourceDelayTopic)
-	if err != nil {
-		return err
-	}
-	targetExpDecay, err := parseTopic(bs.defaultMQ, b.targetExpDecayTopic)
-	if err != nil {
-		return err
-	}
-	targetBackoff, err := parseTopic(bs.defaultMQ, b.targetBackoffTopic)
-	if err != nil {
-		return err
-	}
-
 	v, ok := bs.buses.Load(b.name)
 	if !ok { // Add
 		var targetExpDecayMQProducer, targetBackoffMQProducer MQProducer
-		targetExpDecayMQProducer, err = bs.newMQProducer(targetExpDecay)
+		targetExpDecayMQProducer, err := bs.newMQProducer(b.targetExpDecay)
 		if err != nil {
 			return err
 		}
-		targetBackoffMQProducer, err = bs.newMQProducer(targetBackoff)
+		targetBackoffMQProducer, err = bs.newMQProducer(b.targetBackoff)
 		if err != nil {
 			return err
 		}
 		var targetExpDecayMQConsumer, targetBackoffMQConsumer, sourceMQConsumer, sourceDelayMQConsumer MQConsumer
 		targetExpDecayMQConsumer, err = bs.newMQConsumer(
-			b.name, TopicTypeTargetExpDecay, targetExpDecay, b.mode, bs.targetExpDecayTimeout,
+			b.name, TopicTypeTargetExpDecay, b.targetExpDecay, b.mode, bs.targetExpDecayTimeout,
 		)
 		if err != nil {
 			return err
 		}
 		targetBackoffMQConsumer, err = bs.newMQConsumer(
-			b.name, TopicTypeTargetBackoff, targetBackoff, b.mode, bs.targetBackoffTimeout,
+			b.name, TopicTypeTargetBackoff, b.targetBackoff, b.mode, bs.targetBackoffTimeout,
 		)
 		if err != nil {
 			return err
 		}
 		sourceMQConsumer, err = bs.newMQConsumer(
-			b.name, TopicTypeSource, source, b.mode, bs.sourceTimeout,
+			b.name, TopicTypeSource, b.source, b.mode, bs.sourceTimeout,
 		)
 		if err != nil {
 			return err
 		}
 		sourceDelayMQConsumer, err = bs.newMQConsumer(
-			b.name, TopicTypeSourceDelay, sourceDelay, b.mode, bs.sourceDelayTimeout,
+			b.name, TopicTypeSourceDelay, b.sourceDelay, b.mode, bs.sourceDelayTimeout,
 		)
 		if err != nil {
 			return err
 		}
 		bs.buses.Store(b.name, &bus{
-			sourceTopic:         source.Path,
-			sourceDelayTopic:    sourceDelay.Path,
-			targetExpDecayTopic: targetExpDecay.Path,
-			targetBackoffTopic:  targetBackoff.Path,
-
-			sourceMQ:         source.String(),
-			sourceDelayMQ:    sourceDelay.String(),
-			targetExpDecayMQ: targetExpDecay.String(),
-			targetBackoffMQ:  targetBackoff.String(),
-
 			mode: b.mode,
+
+			source:         b.source,
+			sourceDelay:    b.sourceDelay,
+			targetExpDecay: b.targetExpDecay,
+			targetBackoff:  b.targetBackoff,
 
 			sourceMQConsumer:         sourceMQConsumer,
 			sourceDelayMQConsumer:    sourceDelayMQConsumer,
@@ -464,35 +446,30 @@ func (bs *buses) updateBus(b *busInfo) error {
 	// Update
 	old := v.(*bus)
 	nb := &bus{
-		sourceTopic:         source.Path,
-		sourceDelayTopic:    sourceDelay.Path,
-		targetExpDecayTopic: targetExpDecay.Path,
-		targetBackoffTopic:  targetBackoff.Path,
-
-		sourceMQ:         source.String(),
-		sourceDelayMQ:    sourceDelay.String(),
-		targetExpDecayMQ: targetExpDecay.String(),
-		targetBackoffMQ:  targetBackoff.String(),
-
 		mode: b.mode,
+
+		source:         b.source,
+		sourceDelay:    b.sourceDelay,
+		targetExpDecay: b.targetExpDecay,
+		targetBackoff:  b.targetBackoff,
 	}
 	var cleanup []io.Closer
-	if old.targetExpDecayMQ == nb.targetExpDecayMQ {
+	if old.targetExpDecay == nb.targetExpDecay {
 		nb.targetExpDecayMQProducer = old.targetExpDecayMQProducer
 	} else {
 		var targetExpDecayMQProducer MQProducer
-		targetExpDecayMQProducer, err = bs.newMQProducer(targetExpDecay)
+		targetExpDecayMQProducer, err := bs.newMQProducer(nb.targetExpDecay)
 		if err != nil {
 			return err
 		}
 		nb.targetExpDecayMQProducer = targetExpDecayMQProducer
 		cleanup = append(cleanup, old.targetExpDecayMQProducer)
 	}
-	if old.targetBackoffMQ == nb.targetBackoffMQ {
+	if old.targetBackoff == nb.targetBackoff {
 		nb.targetBackoffMQProducer = old.targetBackoffMQProducer
 	} else {
 		var targetBackoffMQProducer MQProducer
-		targetBackoffMQProducer, err = bs.newMQProducer(targetBackoff)
+		targetBackoffMQProducer, err := bs.newMQProducer(nb.targetBackoff)
 		if err != nil {
 			return err
 		}
@@ -500,12 +477,12 @@ func (bs *buses) updateBus(b *busInfo) error {
 		cleanup = append(cleanup, old.targetBackoffMQProducer)
 	}
 	if old.mode == nb.mode {
-		if old.targetExpDecayMQ == nb.targetExpDecayMQ {
+		if old.targetExpDecay == nb.targetExpDecay {
 			nb.targetExpDecayMQConsumer = old.targetExpDecayMQConsumer
 		} else {
 			var targetExpDecayMQConsumer MQConsumer
-			targetExpDecayMQConsumer, err = bs.newMQConsumer(
-				b.name, TopicTypeTargetExpDecay, targetExpDecay, b.mode, bs.targetExpDecayTimeout,
+			targetExpDecayMQConsumer, err := bs.newMQConsumer(
+				b.name, TopicTypeTargetExpDecay, nb.targetExpDecay, nb.mode, bs.targetExpDecayTimeout,
 			)
 			if err != nil {
 				return err
@@ -513,12 +490,12 @@ func (bs *buses) updateBus(b *busInfo) error {
 			nb.targetExpDecayMQConsumer = targetExpDecayMQConsumer
 			cleanup = append(cleanup, old.targetExpDecayMQConsumer)
 		}
-		if old.targetBackoffMQ == nb.targetBackoffMQ {
+		if old.targetBackoff == nb.targetBackoff {
 			nb.targetBackoffMQConsumer = old.targetBackoffMQConsumer
 		} else {
 			var targetBackoffMQConsumer MQConsumer
-			targetBackoffMQConsumer, err = bs.newMQConsumer(
-				b.name, TopicTypeTargetBackoff, targetBackoff, b.mode, bs.targetBackoffTimeout,
+			targetBackoffMQConsumer, err := bs.newMQConsumer(
+				b.name, TopicTypeTargetBackoff, nb.targetBackoff, nb.mode, bs.targetBackoffTimeout,
 			)
 			if err != nil {
 				return err
@@ -526,12 +503,12 @@ func (bs *buses) updateBus(b *busInfo) error {
 			nb.targetBackoffMQConsumer = targetBackoffMQConsumer
 			cleanup = append(cleanup, old.targetBackoffMQConsumer)
 		}
-		if old.sourceMQ == nb.sourceMQ {
+		if old.source == nb.source {
 			nb.sourceMQConsumer = old.sourceMQConsumer
 		} else {
 			var sourceMQConsumer MQConsumer
-			sourceMQConsumer, err = bs.newMQConsumer(
-				b.name, TopicTypeSource, source, b.mode, bs.sourceTimeout,
+			sourceMQConsumer, err := bs.newMQConsumer(
+				b.name, TopicTypeSource, nb.source, nb.mode, bs.sourceTimeout,
 			)
 			if err != nil {
 				return err
@@ -539,12 +516,12 @@ func (bs *buses) updateBus(b *busInfo) error {
 			nb.sourceMQConsumer = sourceMQConsumer
 			cleanup = append(cleanup, old.sourceMQConsumer)
 		}
-		if old.sourceDelayMQ == nb.sourceDelayMQ {
+		if old.sourceDelay == nb.sourceDelay {
 			nb.sourceDelayMQConsumer = old.sourceDelayMQConsumer
 		} else {
 			var sourceDelayMQConsumer MQConsumer
-			sourceDelayMQConsumer, err = bs.newMQConsumer(
-				b.name, TopicTypeSourceDelay, sourceDelay, b.mode, bs.sourceDelayTimeout,
+			sourceDelayMQConsumer, err := bs.newMQConsumer(
+				b.name, TopicTypeSourceDelay, nb.sourceDelay, nb.mode, bs.sourceDelayTimeout,
 			)
 			if err != nil {
 				return err
@@ -554,26 +531,26 @@ func (bs *buses) updateBus(b *busInfo) error {
 		}
 	} else {
 		var targetExpDecayMQConsumer, targetBackoffMQConsumer, sourceMQConsumer, sourceDelayMQConsumer MQConsumer
-		targetExpDecayMQConsumer, err = bs.newMQConsumer(
-			b.name, TopicTypeTargetExpDecay, targetExpDecay, b.mode, bs.targetExpDecayTimeout,
+		targetExpDecayMQConsumer, err := bs.newMQConsumer(
+			b.name, TopicTypeTargetExpDecay, nb.targetExpDecay, nb.mode, bs.targetExpDecayTimeout,
 		)
 		if err != nil {
 			return err
 		}
 		targetBackoffMQConsumer, err = bs.newMQConsumer(
-			b.name, TopicTypeTargetBackoff, targetBackoff, b.mode, bs.targetBackoffTimeout,
+			b.name, TopicTypeTargetBackoff, nb.targetBackoff, nb.mode, bs.targetBackoffTimeout,
 		)
 		if err != nil {
 			return err
 		}
 		sourceMQConsumer, err = bs.newMQConsumer(
-			b.name, TopicTypeSource, source, b.mode, bs.sourceTimeout,
+			b.name, TopicTypeSource, nb.source, nb.mode, bs.sourceTimeout,
 		)
 		if err != nil {
 			return err
 		}
 		sourceDelayMQConsumer, err = bs.newMQConsumer(
-			b.name, TopicTypeSourceDelay, sourceDelay, b.mode, bs.sourceDelayTimeout,
+			b.name, TopicTypeSourceDelay, nb.sourceDelay, nb.mode, bs.sourceDelayTimeout,
 		)
 		if err != nil {
 			return err
@@ -590,7 +567,7 @@ func (bs *buses) updateBus(b *busInfo) error {
 	}
 	bs.buses.Store(b.name, nb)
 	for i := len(cleanup) - 1; i >= 0; i-- {
-		err = cleanup[i].Close()
+		err := cleanup[i].Close()
 		if err != nil {
 			bs.log.Errorf("close consumer or producer err: %s", err)
 		}
@@ -598,44 +575,25 @@ func (bs *buses) updateBus(b *busInfo) error {
 	return nil
 }
 
-func parseTopic(defaultMQ *url.URL, topic string) (*url.URL, error) {
-	parsedTopic, err := url.Parse(topic)
-	if err != nil {
-		return nil, err
-	}
-
-	if parsedTopic.Scheme == "" {
-		parsedTopic.Scheme = defaultMQ.Scheme
-	}
-	if parsedTopic.Host == "" {
-		parsedTopic.Host = defaultMQ.Host
-	}
-	if parsedTopic.Path == "" {
-		return nil, fmt.Errorf("bus topic is empty")
-	}
-
-	return parsedTopic, nil
-}
-
-func (bs *buses) newMQProducer(mq *url.URL) (MQProducer, error) {
-	switch mq.Scheme {
-	case SchemaRocketMQ:
-		return NewRocketMQProducer(mq.Host)
+func (bs *buses) newMQProducer(topic MQTopic) (MQProducer, error) {
+	switch topic.Type {
+	case v1.MQType_MQ_TYPE_ROCKETMQ:
+		return NewRocketMQProducer(topic.Endpoints)
 	default:
-		return nil, fmt.Errorf("unsupported mq scheme: %s", mq.Scheme)
+		return nil, fmt.Errorf("unsupported mq type: %s", topic.Type)
 	}
 }
 
 func (bs *buses) newMQConsumer(
-	busName string, topicType string, mq *url.URL, mode v1.BusWorkMode, timeout time.Duration,
+	busName string, topicType string, topic MQTopic, mode v1.BusWorkMode, timeout time.Duration,
 ) (MQConsumer, error) {
 	var consumer MQConsumer
 	var err error
-	switch mq.Scheme {
-	case SchemaRocketMQ:
-		consumer, err = NewRocketMQConsumer(bs.baseLog, busName, topicType, mq.Host, mq.Path)
+	switch topic.Type {
+	case v1.MQType_MQ_TYPE_ROCKETMQ:
+		consumer, err = NewRocketMQConsumer(bs.baseLog, busName, topicType, topic.Endpoints, topic.Topic)
 	default:
-		return nil, fmt.Errorf("unsupported mq scheme: %s", mq.Scheme)
+		return nil, fmt.Errorf("unsupported mq type: %s", topic.Type)
 	}
 	if err != nil {
 		return nil, err
@@ -643,7 +601,7 @@ func (bs *buses) newMQConsumer(
 	bs.eg.Go(func() error {
 		err = consumer.Receive(bs.ctx, bs.eventHandler, mode, timeout, bs.workersPerMqTopic, bs.runningWorkers)
 		if err != nil {
-			bs.log.Errorf("consumer(%s) receive err: %s", mq.String(), err)
+			bs.log.Errorf("consumer(%s, %s, %s) receive err: %s", busName, topicType, topic.Topic, err)
 		}
 		return nil
 	})

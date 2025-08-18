@@ -2,6 +2,8 @@ package data
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -159,11 +161,18 @@ func (r *reflector) fetchBuses() ([]*biz.Bus, error) {
 			next = 0
 		}
 		for _, b := range bs {
+			var source, sourceDelay biz.MQTopic
+			if err = json.Unmarshal([]byte(b.SourceTopic), &source); err != nil {
+				return nil, fmt.Errorf("unmarshal source topic: %w", err)
+			}
+			if err = json.Unmarshal([]byte(b.SourceDelayTopic), &sourceDelay); err != nil {
+				return nil, fmt.Errorf("unmarshal source delay topic: %w", err)
+			}
 			buses = append(buses, &biz.Bus{
-				Name:             b.Name,
-				Mode:             v1.BusWorkMode(b.Mode),
-				SourceTopic:      b.SourceTopic,
-				SourceDelayTopic: b.SourceDelayTopic,
+				Name:        b.Name,
+				Mode:        v1.BusWorkMode(b.Mode),
+				Source:      source,
+				SourceDelay: sourceDelay,
 			})
 		}
 		if next == 0 {

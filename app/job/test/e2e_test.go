@@ -3,10 +3,10 @@ package test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"reflect"
@@ -43,13 +43,13 @@ func TestPostEventOrderly(t *testing.T) { //nolint:gocyclo
 	// setup docker-compose
 	var err error
 	if os.Getenv("TEST_ENV") != "CI" {
-		cmdUp := exec.Command("docker-compose", "-f", "docker-compose.yaml", "up", "-d")
+		cmdUp := exec.Command("docker-compose", "-f", "docker-compose.yaml", "-p", "eb-job-t", "up", "-d")
 		err = cmdUp.Run()
 		if err != nil {
 			t.Errorf("docker-compose up error: %v", err)
 		}
 		defer func() {
-			cmdDown := exec.Command("docker-compose", "-f", "docker-compose.yaml", "down")
+			cmdDown := exec.Command("docker-compose", "-f", "docker-compose.yaml", "-p", "eb-job-t", "down")
 			err = cmdDown.Run()
 			if err != nil {
 				t.Logf("docker-compose down error: %v", err)
@@ -65,8 +65,10 @@ func TestPostEventOrderly(t *testing.T) { //nolint:gocyclo
 		FlagConf: "../configs",
 		Id:       "test",
 	}
+	rocketmqEndpoint := "127.0.0.1:8081"
 	if os.Getenv("TEST_ENV") == "CI" {
 		appInfo.FlagConf = "./configs"
+		rocketmqEndpoint = "proxy:8081"
 	}
 	app, cleanup, err := wireApp(appInfo)
 	if err != nil {
@@ -104,10 +106,9 @@ func TestPostEventOrderly(t *testing.T) { //nolint:gocyclo
 	}()
 
 	// init rocketmq producer
-	mq, _ := url.Parse(bc.Data.DefaultMq)
 	producer, err := rmqClient.NewProducer(
 		&rmqClient.Config{
-			Endpoint: mq.Host,
+			Endpoint: rocketmqEndpoint,
 			Credentials: &credentials.SessionCredentials{
 				AccessKey:    "",
 				AccessSecret: "",
@@ -134,13 +135,33 @@ func TestPostEventOrderly(t *testing.T) { //nolint:gocyclo
 	busName := "Orderly"
 
 	// Insert data bus
+	sourceTopic, _ := json.Marshal(data.MQTopic{
+		Type:      v1.MQType_MQ_TYPE_ROCKETMQ,
+		Endpoints: rocketmqEndpoint,
+		Topic:     "EBInterBusOrderly",
+	})
+	sourceDelayTopic, _ := json.Marshal(data.MQTopic{
+		Type:      v1.MQType_MQ_TYPE_ROCKETMQ,
+		Endpoints: rocketmqEndpoint,
+		Topic:     "EBInterDelayBusOrderly",
+	})
+	targetExpDecayTopic, _ := json.Marshal(data.MQTopic{
+		Type:      v1.MQType_MQ_TYPE_ROCKETMQ,
+		Endpoints: rocketmqEndpoint,
+		Topic:     "EBInterTargetExpDecayBusOrderly",
+	})
+	targetBackoffTopic, _ := json.Marshal(data.MQTopic{
+		Type:      v1.MQType_MQ_TYPE_ROCKETMQ,
+		Endpoints: rocketmqEndpoint,
+		Topic:     "EBInterTargetBackoffBusOrderly",
+	})
 	_, err = client.Bus.Create().
 		SetName(busName).
 		SetMode(uint8(v1.BusWorkMode_BUS_WORK_MODE_ORDERLY)).
-		SetSourceTopic("EBInterBusOrderly").
-		SetSourceDelayTopic("EBInterDelayBusOrderly").
-		SetTargetExpDecayTopic("EBInterTargetExpDecayBusOrderly").
-		SetTargetBackoffTopic("EBInterTargetBackoffBusOrderly").
+		SetSourceTopic(string(sourceTopic)).
+		SetSourceDelayTopic(string(sourceDelayTopic)).
+		SetTargetExpDecayTopic(string(targetExpDecayTopic)).
+		SetTargetBackoffTopic(string(targetBackoffTopic)).
 		Save(context.Background())
 	if err != nil {
 		t.Errorf("bus create error: %v", err)
