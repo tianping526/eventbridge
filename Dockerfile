@@ -1,4 +1,4 @@
-FROM golang:1.24 AS builder
+FROM golang:1.25 AS builder
 
 ARG APP_NAME
 ARG VERSION
@@ -6,7 +6,7 @@ ARG VERSION
 COPY . /src
 WORKDIR /src
 
-RUN go build -ldflags "-X main.Version=${VERSION}" ./app/${APP_NAME}/cmd/server
+RUN GOEXPERIMENT=greenteagc GOEXPERIMENT=jsonv2 go build -ldflags "-X main.Version=${VERSION}" ./app/${APP_NAME}/cmd/server
 
 
 FROM debian:stable-slim

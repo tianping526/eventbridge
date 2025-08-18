@@ -10,7 +10,6 @@ import (
 	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/go-kratos/kratos/v2/transport/http"
-	_ "go.uber.org/automaxprocs"
 
 	"github.com/tianping526/eventbridge/app/service/internal/conf"
 )
