@@ -27,7 +27,7 @@ services:
 
   mq-namesrv:
     restart: always
-    image: apache/rocketmq:5.3.1
+    image: apache/rocketmq:5.3.3
     environment:
       - JAVA_OPT_EXT=-server -Xms256m -Xmx256m -Xmn128m
     command: sh mqnamesrv
@@ -36,7 +36,7 @@ services:
 
   mq-broker:
     restart: always
-    image: apache/rocketmq:5.3.1
+    image: apache/rocketmq:5.3.3
     depends_on:
       - mq-namesrv
     environment:
@@ -48,7 +48,7 @@ services:
 
   mq-proxy:
     restart: always
-    image: apache/rocketmq:5.3.1
+    image: apache/rocketmq:5.3.3
     depends_on:
       - mq-namesrv
       - mq-broker
@@ -61,7 +61,7 @@ services:
 
   create-default-data-bus:
     restart: on-failure
-    image: apache/rocketmq:5.3.1
+    image: apache/rocketmq:5.3.3
     depends_on:
       - mq-namesrv
       - mq-broker
@@ -132,11 +132,11 @@ docker-compose -f docker-compose.yaml ps -a
 ```
 
     NAME                                    IMAGE                   COMMAND                  SERVICE                   CREATED          STATUS                     PORTS
-    eventbridge-create-default-data-bus-1   apache/rocketmq:5.3.1   "./docker-entrypoint…"   create-default-data-bus   43 seconds ago   Exited (0) 3 seconds ago   
+    eventbridge-create-default-data-bus-1   apache/rocketmq:5.3.3   "./docker-entrypoint…"   create-default-data-bus   43 seconds ago   Exited (0) 3 seconds ago   
     eventbridge-db-1                        postgres                "docker-entrypoint.s…"   db                        43 seconds ago   Up 43 seconds              5432/tcp
-    eventbridge-mq-broker-1                 apache/rocketmq:5.3.1   "./docker-entrypoint…"   mq-broker                 44 seconds ago   Up 43 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
-    eventbridge-mq-namesrv-1                apache/rocketmq:5.3.1   "./docker-entrypoint…"   mq-namesrv                44 seconds ago   Up 43 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
-    eventbridge-mq-proxy-1                  apache/rocketmq:5.3.1   "./docker-entrypoint…"   mq-proxy                  43 seconds ago   Up 31 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
+    eventbridge-mq-broker-1                 apache/rocketmq:5.3.3   "./docker-entrypoint…"   mq-broker                 44 seconds ago   Up 43 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
+    eventbridge-mq-namesrv-1                apache/rocketmq:5.3.3   "./docker-entrypoint…"   mq-namesrv                44 seconds ago   Up 43 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
+    eventbridge-mq-proxy-1                  apache/rocketmq:5.3.3   "./docker-entrypoint…"   mq-proxy                  43 seconds ago   Up 31 seconds              9876/tcp, 10909/tcp, 10911-10912/tcp
     eventbridge-redis-1                     redis                   "docker-entrypoint.s…"   redis                     44 seconds ago   Up 43 seconds              6379/tcp
 
 Successful startup of the `eventbridge-create-default-data-bus-1` container with status `Exited (0)`
@@ -147,7 +147,7 @@ indicates that the Default Bus's Topics and subscription groups were created suc
 > Ensure the current directory contains a `service.yaml` file.
 
 ```bash
-docker run -d --network eventbridge -p 8011:8011 -p 9011:9011 -v $(pwd)/service.yaml:/data/conf/service.yaml linktin/eb-service:1.0.0
+docker run -d --network eventbridge -p 8011:8011 -p 9011:9011 -v $(pwd)/service.yaml:/data/conf/service.yaml linktin/eb-service:1.6.0
 ```
 
 Below is the content of `service.yaml`.
@@ -188,7 +188,7 @@ docker ps -a
 ```
 
     CONTAINER ID   IMAGE                      COMMAND                  CREATED         STATUS                     PORTS                                            NAMES
-    0cfa5a79afb8   linktin/eb-service:1.0.0   "./server -conf /dat…"   5 seconds ago   Up 4 seconds               0.0.0.0:8011->8011/tcp, 0.0.0.0:9011->9011/tcp   sweet_yalow
+    0cfa5a79afb8   linktin/eb-service:1.6.0   "./server -conf /dat…"   5 seconds ago   Up 4 seconds               0.0.0.0:8011->8011/tcp, 0.0.0.0:9011->9011/tcp   sweet_yalow
 
 Successful startup of the Service container with status `Up` indicates that the Service is running correctly.
 
@@ -197,7 +197,7 @@ Successful startup of the Service container with status `Up` indicates that the 
 > Ensure the current directory contains a `job.yaml` file.
 
 ```bash
-docker run -d --network eventbridge -v $(pwd)/job.yaml:/data/conf/job.yaml linktin/eb-job:1.0.0
+docker run -d --network eventbridge -v $(pwd)/job.yaml:/data/conf/job.yaml linktin/eb-job:1.6.0
 ```
 
 Below is the content of `job.yaml`.
@@ -232,7 +232,7 @@ docker ps -a
 ```
 
     CONTAINER ID   IMAGE                      COMMAND                  CREATED          STATUS                      PORTS                                            NAMES
-    b7c280bfde43   linktin/eb-job:1.0.0       "./server -conf /dat…"   5 seconds ago    Up 5 seconds                                                                 happy_hugle
+    b7c280bfde43   linktin/eb-job:1.6.0       "./server -conf /dat…"   5 seconds ago    Up 5 seconds                                                                 happy_hugle
 
 Successful startup of the Job container with status `Up` indicates that the Job is running correctly.
 
@@ -272,18 +272,13 @@ kubectl -n eventbridge get pod
     eb-pg-ha-postgresql-0               1/1     Running   0               4m32s
     eb-pg-ha-postgresql-1               1/1     Running   0               4m32s
     eb-pg-ha-postgresql-2               1/1     Running   0               4m32s
-    eb-redis-cluster-0                  1/1     Running   0               4m32s
-    eb-redis-cluster-1                  1/1     Running   0               4m31s
-    eb-redis-cluster-2                  1/1     Running   0               4m31s
-    eb-redis-cluster-3                  1/1     Running   0               4m30s
-    eb-redis-cluster-4                  1/1     Running   0               4m31s
-    eb-redis-cluster-5                  1/1     Running   0               4m31s
+    eb-redis-node-0                     1/1     Running   0               4m32s
+    eb-redis-node-1                     1/1     Running   0               4m31s
+    eb-redis-node-2                     1/1     Running   0               4m31s
     eb-rmq-broker-master-0              1/1     Running   0               4m32s
     eb-rmq-broker-master-1              1/1     Running   0               2m52s
     eb-rmq-broker-replica-id1-0         1/1     Running   0               4m31s
     eb-rmq-broker-replica-id1-1         1/1     Running   0               2m50s
-    eb-rmq-broker-replica-id2-0         1/1     Running   0               4m31s
-    eb-rmq-broker-replica-id2-1         1/1     Running   0               3m31s
     eb-rmq-controller-0                 1/1     Running   0               4m32s
     eb-rmq-controller-1                 1/1     Running   0               4m32s
     eb-rmq-controller-2                 1/1     Running   0               4m32s
@@ -321,12 +316,32 @@ curl --location '127.0.0.1:8011/v1/eventbridge/bus' \
 --header 'Accept: application/json' \
 --data '{
   "name": "Default",
-  "mode": 1
+  "mode": "BUS_WORK_MODE_CONCURRENTLY",
+  "source": {
+    "mq_type": "MQ_TYPE_ROCKETMQ",
+    "endpoints": ["mq-proxy:8081"],
+    "topic": "EBInterBusDefault"
+  },
+  "source_delay": {
+    "mq_type": "MQ_TYPE_ROCKETMQ",
+    "endpoints": ["mq-proxy:8081"],
+    "topic": "EBInterDelayBusDefault"
+  },
+  "target_exp_decay": {
+    "mq_type": "MQ_TYPE_ROCKETMQ",
+    "endpoints": ["mq-proxy:8081"],
+    "topic": "EBInterTargetExpDecayBusDefault"
+  },
+  "target_backoff": {
+    "mq_type": "MQ_TYPE_ROCKETMQ",
+    "endpoints": ["mq-proxy:8081"],
+    "topic": "EBInterTargetBackoffBusDefault"
+  }
 }'
 
-# {"code":400, "reason":"BUS_NAME_REPEAT", "message":"bus name repeat. name: Default", "metadata":{}}
+# {"id":"28866794466836483"}
 ```
-
+TODO
 As you can see, the error message indicates that the Bus name `Default` already exists.
 After creating the Default Bus, you can view its information.
 The definition for viewing Bus information can be found in
@@ -339,10 +354,10 @@ and [gRPC List Buses](https://github.com/tianping526/apis/blob/main/api/eventbri
 curl --location '127.0.0.1:8011/v1/eventbridge/buses?prefix=Default' \
 --header 'Accept: application/json'
 
-# {"buses":[{"name":"Default", "mode":"BUS_WORK_MODE_CONCURRENTLY", "sourceTopic":"EBInterBusDefault", "sourceDelayTopic":"EBInterDelayBusDefault", "targetExpDecayTopic":"EBInterTargetExpDecayBusDefault", "targetBackoffTopic":"EBInterTargetBackoffBusDefault"}], "nextToken":"0"}
+# {"buses":[{"name":"Default", "mode":"BUS_WORK_MODE_CONCURRENTLY", "source":{"mq_type":"MQ_TYPE_ROCKETMQ", "endpoints":["mq-proxy:8081"], "topic":"EBInterBusDefault"}, "source_delay":{"mqType":"MQ_TYPE_ROCKETMQ", "endpoints":["mq-proxy:8081"], "topic":"EBInterDelayBusDefault"}, "target_exp_decay":{"mq_type":"MQ_TYPE_ROCKETMQ", "endpoints":["mq-proxy:8081"], "topic":"EBInterTargetExpDecayBusDefault"}, "target_backoff":{"mq_type":"MQ_TYPE_ROCKETMQ", "endpoints":["mq-proxy:8081"], "topic":"EBInterTargetBackoffBusDefault"}}], "nextToken":"0"}
 ```
 
-The `source_topic`, `source_delay_topic`, `target_exp_decay_topic`, and `target_backoff_topic` of the Default Bus are
+The `source`, `source_delay`, `target_exp_decay`, and `target_backoff` Topic of the Default Bus are
 `EBInterBusDefault`, `EBInterDelayBusDefault`, `EBInterTargetExpDecayBusDefault`, and `EBInterTargetBackoffBusDefault`,
 respectively.
 For more details about the purpose of these four topics, refer to the [Architecture](architecture.md#job)
@@ -361,7 +376,27 @@ curl --location '127.0.0.1:8011/v1/eventbridge/bus' \
 --header 'Accept: application/json' \
 --data '{
   "name": "Orderly",
-  "mode": 2
+  "mode": "BUS_WORK_MODE_ORDERLY",
+  "source": {
+    "mq_type": "MQ_TYPE_ROCKETMQ",
+    "endpoints": ["mq-proxy:8081"],
+    "topic": "EBInterBusOrderly"
+    },
+  "source_delay": {
+    "mq_type": "MQ_TYPE_ROCKETMQ",
+    "endpoints": ["mq-proxy:8081"],
+    "topic": "EBInterDelayBusOrderly"
+    },
+  "target_exp_decay": {
+    "mq_type": "MQ_TYPE_ROCKETMQ",
+    "endpoints": ["mq-proxy:8081"],
+    "topic": "EBInterTargetExpDecayBusOrderly"
+    },
+  "target_backoff": {
+    "mq_type": "MQ_TYPE_ROCKETMQ",
+    "endpoints": ["mq-proxy:8081"],
+    "topic": "EBInterTargetBackoffBusOrderly"
+    }
 }'
 
 # {"id":"28866794466836484"}
