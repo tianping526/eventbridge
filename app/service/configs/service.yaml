@@ -11,7 +11,7 @@ bootstrap:
   data:
     database:
       driver: postgres
-      source: postgresql://postgres:example@127.0.0.1:5432/postgres
+      source: postgresql://postgres:example@127.0.0.1:5433/postgres
       #      driver: mysql
       #      source: root:example@tcp(127.0.0.1:12222)/test?timeout=1s&readTimeout=1s&writeTimeout=1s&parseTime=true&loc=Local&charset=utf8mb4,utf8&interpolateParams=true
       max_open: 100

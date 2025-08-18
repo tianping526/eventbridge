@@ -15,7 +15,10 @@ import (
 	"github.com/tianping526/eventbridge/app/service/internal/service"
 )
 
-var sv *service.EventBridgeService
+var (
+	sv               *service.EventBridgeService
+	rocketmqEndpoint = "127.0.0.1:8082"
+)
 
 // TestMain setup docker-compose
 func TestMain(m *testing.M) {
@@ -29,19 +32,19 @@ func TestMain(m *testing.M) {
 	// setup docker-compose
 	var err error
 	if os.Getenv("TEST_ENV") != "CI" {
-		cmdUp := exec.Command("docker-compose", "-f", "docker-compose.yaml", "up", "-d")
+		cmdUp := exec.Command("docker-compose", "-f", "docker-compose.yaml", "-p", "eb-svc-t", "up", "-d")
 		err = cmdUp.Run()
 		if err != nil {
 			panic(fmt.Sprintf("docker-compose up error: %v", err))
 		}
 		defer func() {
-			cmdDown := exec.Command("docker-compose", "-f", "docker-compose.yaml", "down")
+			cmdDown := exec.Command("docker-compose", "-f", "docker-compose.yaml", "-p", "eb-svc-t", "down")
 			err = cmdDown.Run()
 			if err != nil {
 				panic(fmt.Sprintf("docker-compose down error: %v", err))
 			}
 		}()
-		time.Sleep(15 * time.Second) // wait for docker-compose up
+		time.Sleep(10 * time.Second) // wait for docker-compose up
 	}
 
 	// setup app
@@ -53,6 +56,7 @@ func TestMain(m *testing.M) {
 	}
 	if os.Getenv("TEST_ENV") == "CI" {
 		appInfo.FlagConf = "./configs"
+		rocketmqEndpoint = "proxy:8081"
 	}
 	var cleanup func()
 	sv, cleanup, err = wireService(appInfo)
@@ -60,6 +64,46 @@ func TestMain(m *testing.M) {
 		panic(fmt.Sprintf("new service error: %v", err))
 	}
 	defer cleanup()
+
+	// Create Default bus
+	_, err = sv.CreateBus(context.Background(), &v1.CreateBusRequest{
+		Name: "Default",
+		Mode: v1.BusWorkMode_BUS_WORK_MODE_CONCURRENTLY,
+		Source: &v1.MQTopic{
+			MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+			Endpoints: []string{
+				rocketmqEndpoint,
+			},
+			Topic: "EBInterBusDefault",
+		},
+		SourceDelay: &v1.MQTopic{
+			MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+			Endpoints: []string{
+				rocketmqEndpoint,
+			},
+			Topic: "EBInterDelayBusDefault",
+		},
+		TargetExpDecay: &v1.MQTopic{
+			MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+			Endpoints: []string{
+				rocketmqEndpoint,
+			},
+			Topic: "EBInterTargetExpDecayBusDefault",
+		},
+		TargetBackoff: &v1.MQTopic{
+			MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+			Endpoints: []string{
+				rocketmqEndpoint,
+			},
+			Topic: "EBInterTargetBackoffBusDefault",
+		},
+	})
+	if err != nil {
+		if !v1.IsBusNameRepeat(err) {
+			panic(fmt.Sprintf("create default bus error: %v", err))
+		}
+	}
+	time.Sleep(5 * time.Second) // wait for bus creation
 
 	code = m.Run()
 }
@@ -283,6 +327,35 @@ func TestListBus(t *testing.T) {
 	convey.Convey("Given a bus other than Default", t, func() {
 		_, err := sv.CreateBus(context.Background(), &v1.CreateBusRequest{
 			Name: "Default1",
+			Mode: v1.BusWorkMode_BUS_WORK_MODE_CONCURRENTLY,
+			Source: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterBusDefault1",
+			},
+			SourceDelay: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterDelayBusDefault1",
+			},
+			TargetExpDecay: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterTargetExpDecayBusDefault1",
+			},
+			TargetBackoff: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterTargetBackoffBusDefault1",
+			},
 		})
 		convey.So(err, convey.ShouldBeNil)
 		convey.Convey("When ListBus with limit 1", func() {
@@ -319,6 +392,35 @@ func TestDeleteBus(t *testing.T) {
 		)
 		_, err := sv.CreateBus(ctx, &v1.CreateBusRequest{
 			Name: "CreatedBus",
+			Mode: v1.BusWorkMode_BUS_WORK_MODE_CONCURRENTLY,
+			Source: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterBusCreatedBus",
+			},
+			SourceDelay: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterDelayBusCreatedBus",
+			},
+			TargetExpDecay: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterTargetExpDecayBusCreatedBus",
+			},
+			TargetBackoff: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterTargetBackoffBusCreatedBus",
+			},
 		})
 		convey.So(err, convey.ShouldBeNil)
 		convey.Convey("When DeleteBus and ListBus", func() {
@@ -453,6 +555,35 @@ func TestUpdateRule(t *testing.T) {
 		)
 		_, err := sv.CreateBus(ctx, &v1.CreateBusRequest{
 			Name: "CreatedBus1",
+			Mode: v1.BusWorkMode_BUS_WORK_MODE_CONCURRENTLY,
+			Source: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterBusCreatedBus1",
+			},
+			SourceDelay: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterDelayBusCreatedBus1",
+			},
+			TargetExpDecay: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterTargetExpDecayBusCreatedBus1",
+			},
+			TargetBackoff: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterTargetBackoffBusCreatedBus1",
+			},
 		})
 		convey.So(err, convey.ShouldBeNil)
 		pattern := "{\"subject\":[{\"prefix\":\"acs:oss:cn-hangzhou:1234567:xls-papk/\"}," +
@@ -514,6 +645,35 @@ func TestDeleteRule(t *testing.T) {
 		)
 		_, err := sv.CreateBus(ctx, &v1.CreateBusRequest{
 			Name: "CreatedBus2",
+			Mode: v1.BusWorkMode_BUS_WORK_MODE_CONCURRENTLY,
+			Source: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterBusCreatedBus2",
+			},
+			SourceDelay: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterDelayBusCreatedBus2",
+			},
+			TargetExpDecay: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterTargetExpDecayBusCreatedBus2",
+			},
+			TargetBackoff: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterTargetBackoffBusCreatedBus2",
+			},
 		})
 		convey.So(err, convey.ShouldBeNil)
 		pattern := "{\"subject\":[{\"prefix\":\"acs:oss:cn-hangzhou:1234567:xls-papk/\"}," +
@@ -642,6 +802,35 @@ func TestDeleteTargets(t *testing.T) {
 		)
 		_, err := sv.CreateBus(ctx, &v1.CreateBusRequest{
 			Name: "CreatedBus3",
+			Mode: v1.BusWorkMode_BUS_WORK_MODE_CONCURRENTLY,
+			Source: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterBusCreatedBus3",
+			},
+			SourceDelay: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterDelayBusCreatedBus3",
+			},
+			TargetExpDecay: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterTargetExpDecayBusCreatedBus3",
+			},
+			TargetBackoff: &v1.MQTopic{
+				MqType: v1.MQType_MQ_TYPE_ROCKETMQ,
+				Endpoints: []string{
+					rocketmqEndpoint,
+				},
+				Topic: "EBInterTargetBackoffBusCreatedBus3",
+			},
 		})
 		convey.So(err, convey.ShouldBeNil)
 		pattern := "{\"subject\":[{\"prefix\":\"acs:oss:cn-hangzhou:1234567:xls-papk/\"}," +
