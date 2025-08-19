@@ -9,13 +9,13 @@ import (
 	"github.com/tianping526/eventbridge/app/internal/rule/pattern"
 )
 
-func RulePatternSyntaxCheck(ctx context.Context, spec *string) error {
+func RulePatternSyntaxCheck(ctx context.Context, spec []byte) error {
 	if spec == nil {
 		return nil
 	}
 	logger := log.DefaultLogger
 	filterPattern := make(map[string]interface{})
-	err := json.Unmarshal([]byte(*spec), &filterPattern)
+	err := json.Unmarshal(spec, &filterPattern)
 	if err != nil {
 		return err
 	}

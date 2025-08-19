@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json/jsontext"
 
 	v1 "github.com/tianping526/eventbridge/apis/api/eventbridge/service/v1"
 	"github.com/tianping526/eventbridge/app/internal/rule"
@@ -60,7 +61,7 @@ func (s *EventBridgeService) CreateRule(
 	if request.Status == v1.RuleStatus_RULE_STATUS_UNSPECIFIED {
 		status = v1.RuleStatus_RULE_STATUS_ENABLE
 	}
-	targets := make([]*rule.Target, 0, len(request.Targets))
+	targetMapping := make(map[uint64]*rule.Target, len(request.Targets))
 	for _, t := range request.Targets {
 		params := make([]*rule.TargetParam, 0, len(t.Params))
 		for _, p := range t.Params {
@@ -78,9 +79,20 @@ func (s *EventBridgeService) CreateRule(
 			Params:        params,
 			RetryStrategy: t.RetryStrategy,
 		}
-		targets = append(targets, target)
+		targetMapping[t.Id] = target
 	}
-	id, err := s.rc.CreateRule(ctx, request.BusName, request.Name, status, &request.Pattern, targets)
+	targets := make([]*rule.Target, 0, len(targetMapping))
+	for _, t := range targetMapping {
+		targets = append(targets, t)
+	}
+	pattern := []byte(request.Pattern)
+	err := (*jsontext.Value)(&pattern).Compact()
+	if err != nil {
+		return nil, v1.ErrorPatternSyntaxError(
+			"syntax error: %s", err,
+		)
+	}
+	id, err := s.rc.CreateRule(ctx, request.BusName, request.Name, status, pattern, targets)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +104,17 @@ func (s *EventBridgeService) CreateRule(
 func (s *EventBridgeService) UpdateRule(
 	ctx context.Context, request *v1.UpdateRuleRequest,
 ) (*v1.UpdateRuleResponse, error) {
-	err := s.rc.UpdateRule(ctx, request.BusName, request.Name, request.Status, request.Pattern)
+	var pattern []byte
+	if request.Pattern != nil {
+		pattern = []byte(*request.Pattern)
+		err := (*jsontext.Value)(&pattern).Compact()
+		if err != nil {
+			return nil, v1.ErrorPatternSyntaxError(
+				"syntax error: %s", err,
+			)
+		}
+	}
+	err := s.rc.UpdateRule(ctx, request.BusName, request.Name, request.Status, pattern)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +134,7 @@ func (s *EventBridgeService) DeleteRule(
 func (s *EventBridgeService) CreateTargets(
 	ctx context.Context, request *v1.CreateTargetsRequest,
 ) (*v1.CreateTargetsResponse, error) {
-	targets := make([]*rule.Target, 0, len(request.Targets))
+	targetMapping := make(map[uint64]*rule.Target, len(request.Targets))
 	for _, t := range request.Targets {
 		params := make([]*rule.TargetParam, 0, len(t.Params))
 		for _, p := range t.Params {
@@ -130,7 +152,11 @@ func (s *EventBridgeService) CreateTargets(
 			Params:        params,
 			RetryStrategy: t.RetryStrategy,
 		}
-		targets = append(targets, target)
+		targetMapping[t.Id] = target
+	}
+	targets := make([]*rule.Target, 0, len(targetMapping))
+	for _, t := range targetMapping {
+		targets = append(targets, t)
 	}
 	err := s.rc.CreateTargets(ctx, request.BusName, request.RuleName, targets)
 	if err != nil {

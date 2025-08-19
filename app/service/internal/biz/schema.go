@@ -4,11 +4,11 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-func EventSchemaSyntaxCheck(spec *string) error {
+func EventSchemaSyntaxCheck(spec []byte) error {
 	if spec == nil {
 		return nil
 	}
-	jsl := gojsonschema.NewStringLoader(*spec)
+	jsl := gojsonschema.NewBytesLoader(spec)
 	_, err := gojsonschema.NewSchema(jsl)
 	if err != nil {
 		return err

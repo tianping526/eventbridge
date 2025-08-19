@@ -63,11 +63,11 @@ func (r *rocketMQProducer) Send(
 
 	res, err := r.p.Send(ctx, msg)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to send message to topic %s: %w", topic, err)
 	}
 
 	if len(res) == 0 {
-		return "", nil
+		return "", fmt.Errorf("no message ID returned for topic %s", topic)
 	}
 	return res[0].MessageID, nil
 }

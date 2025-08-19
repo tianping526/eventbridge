@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"encoding/json/jsontext"
+	"fmt"
 
 	v1 "github.com/tianping526/eventbridge/apis/api/eventbridge/service/v1"
 	"github.com/tianping526/eventbridge/app/internal/rule"
@@ -15,7 +17,7 @@ func (s *EventBridgeService) PostEvent(
 	}
 	eventExt, err := rule.NewEventExt(request.Event, request.RetryStrategy)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create event extension: %w", err)
 	}
 	event, err := s.ec.PostEvent(ctx, eventExt, request.PubTime)
 	if err != nil {
@@ -55,7 +57,12 @@ func (s *EventBridgeService) ListSchema(
 func (s *EventBridgeService) CreateSchema(
 	ctx context.Context, request *v1.CreateSchemaRequest,
 ) (*v1.CreateSchemaResponse, error) {
-	err := s.ec.CreateSchema(ctx, request.Source, request.Type, request.BusName, &request.Spec)
+	specBytes := []byte(request.Spec)
+	err := (*jsontext.Value)(&specBytes).Compact()
+	if err != nil {
+		return nil, v1.ErrorSchemaSyntaxError("syntax error: %s", err)
+	}
+	err = s.ec.CreateSchema(ctx, request.Source, request.Type, request.BusName, specBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +72,15 @@ func (s *EventBridgeService) CreateSchema(
 func (s *EventBridgeService) UpdateSchema(
 	ctx context.Context, request *v1.UpdateSchemaRequest,
 ) (*v1.UpdateSchemaResponse, error) {
-	err := s.ec.UpdateSchema(ctx, request.Source, request.Type, request.BusName, request.Spec)
+	var specBytes []byte
+	if request.Spec != nil {
+		specBytes = []byte(*request.Spec)
+		err := (*jsontext.Value)(&specBytes).Compact()
+		if err != nil {
+			return nil, v1.ErrorSchemaSyntaxError("syntax error: %s", err)
+		}
+	}
+	err := s.ec.UpdateSchema(ctx, request.Source, request.Type, request.BusName, specBytes)
 	if err != nil {
 		return nil, err
 	}
