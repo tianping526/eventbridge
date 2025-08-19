@@ -54,5 +54,3 @@ jobs:
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
             APP_NAME=${{ matrix.app }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
