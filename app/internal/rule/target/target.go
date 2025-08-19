@@ -1,9 +1,8 @@
 package target
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"fmt"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -26,12 +25,12 @@ type newDispatcherFunc func(context.Context, log.Logger, *rule.Target, *gojsonsc
 // recommended for use in func init() only
 func registerDispatcher(name string, newDispatcherFunc newDispatcherFunc, schema string) {
 	newDispatcherFunctions[name] = newDispatcherFunc
-	bf := bytes.Buffer{}
-	err := json.Compact(&bf, []byte(schema))
+	schemaBytes := []byte(schema)
+	err := (*jsontext.Value)(&schemaBytes).Compact()
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to compact schema for %s: %w", name, err))
 	}
-	dispatcherSchemas[name] = bf.String()
+	dispatcherSchemas[name] = string(schemaBytes)
 	v, err := gojsonschema.NewSchema(gojsonschema.NewStringLoader(schema))
 	if err != nil {
 		panic(err)
