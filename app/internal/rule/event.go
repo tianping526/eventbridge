@@ -120,7 +120,9 @@ func (e *EventExt) Value() []byte {
 func (e *EventExt) ValidateEventData(validator *gojsonschema.Schema) error {
 	result, err := validator.Validate(gojsonschema.NewStringLoader(e.Event.Data))
 	if err != nil {
-		return err
+		return fmt.Errorf(
+			"event data validation error: %w", err,
+		)
 	}
 	if !result.Valid() {
 		return v1.ErrorEventDataNotValid(

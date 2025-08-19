@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json/jsontext"
+	"fmt"
 
 	v1 "github.com/tianping526/eventbridge/apis/api/eventbridge/service/v1"
 	"github.com/tianping526/eventbridge/app/internal/rule"
@@ -16,7 +17,7 @@ func (s *EventBridgeService) PostEvent(
 	}
 	eventExt, err := rule.NewEventExt(request.Event, request.RetryStrategy)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create event extension: %w", err)
 	}
 	event, err := s.ec.PostEvent(ctx, eventExt, request.PubTime)
 	if err != nil {
