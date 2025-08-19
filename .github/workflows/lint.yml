@@ -31,5 +31,7 @@ jobs:
 
       - name: Lint
         uses: golangci/golangci-lint-action@v8
+        env:
+          GOEXPERIMENT: jsonv2
         with:
           skip-cache: true
