@@ -19,9 +19,9 @@ type RuleRepo interface {
 		ctx context.Context, bus string, prefix *string, status v1.RuleStatus, limit int32, nextToken uint64,
 	) ([]*rule.Rule, uint64, error)
 	CreateRule(
-		ctx context.Context, bus string, name string, status v1.RuleStatus, pattern *string, targets []*rule.Target,
+		ctx context.Context, bus string, name string, status v1.RuleStatus, pattern []byte, targets []*rule.Target,
 	) (uint64, error)
-	UpdateRule(ctx context.Context, bus string, name string, status v1.RuleStatus, pattern *string) error
+	UpdateRule(ctx context.Context, bus string, name string, status v1.RuleStatus, pattern []byte) error
 	DeleteRule(ctx context.Context, bus string, name string) error
 	CreateTargets(ctx context.Context, bus string, ruleName string, targets []*rule.Target) error
 	DeleteTargets(ctx context.Context, bus string, ruleName string, targetIDs []uint64) error
@@ -52,7 +52,7 @@ func (uc *RuleUseCase) ListRule(
 }
 
 func (uc *RuleUseCase) CreateRule(
-	ctx context.Context, bus string, name string, status v1.RuleStatus, pattern *string, targets []*rule.Target,
+	ctx context.Context, bus string, name string, status v1.RuleStatus, pattern []byte, targets []*rule.Target,
 ) (uint64, error) {
 	err := RulePatternSyntaxCheck(ctx, pattern)
 	if err != nil {
@@ -72,7 +72,7 @@ func (uc *RuleUseCase) CreateRule(
 }
 
 func (uc *RuleUseCase) UpdateRule(
-	ctx context.Context, bus string, name string, status v1.RuleStatus, pattern *string,
+	ctx context.Context, bus string, name string, status v1.RuleStatus, pattern []byte,
 ) error {
 	if pattern != nil {
 		err := RulePatternSyntaxCheck(ctx, pattern)

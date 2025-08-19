@@ -314,7 +314,7 @@ func SetCacheSchema(ctx context.Context, rc redis.Cmdable, id string, val *ent.E
 }
 
 func (repo *eventRepo) CreateSchema(
-	ctx context.Context, source string, sType string, busName string, spec *string,
+	ctx context.Context, source string, sType string, busName string, spec []byte,
 ) error {
 	var s *ent.EventSchema
 	err := entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {
@@ -338,7 +338,7 @@ func (repo *eventRepo) CreateSchema(
 			SetSource(source).
 			SetType(sType).
 			SetBusName(busName).
-			SetSpec(*spec).
+			SetSpec(string(spec)).
 			SetVersion(1).
 			Save(ctx)
 		if te != nil {
@@ -371,7 +371,7 @@ func (repo *eventRepo) CreateSchema(
 }
 
 func (repo *eventRepo) UpdateSchema(
-	ctx context.Context, source string, sType string, busName *string, spec *string,
+	ctx context.Context, source string, sType string, busName *string, spec []byte,
 ) error {
 	stmt := repo.db.EventSchema.Update().
 		Where(
@@ -380,7 +380,7 @@ func (repo *eventRepo) UpdateSchema(
 		)
 	stmt.AddVersion(1)
 	if spec != nil {
-		stmt.SetSpec(*spec)
+		stmt.SetSpec(string(spec))
 	}
 	var ar int
 	var err error

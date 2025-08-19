@@ -143,7 +143,7 @@ docker-compose -f docker-compose.yaml ps -a
 > 确保当前目录下有 `service.yaml` 文件。
 
 ```bash
-docker run -d --network eventbridge -p 8011:8011 -p 9011:9011 -v $(pwd)/service.yaml:/data/conf/service.yaml linktin/eb-service:1.7.0
+docker run -d --network eventbridge -p 8011:8011 -p 9011:9011 -v $(pwd)/service.yaml:/data/conf/service.yaml linktin/eb-service:1.8.0
 ```
 
 下面是 `service.yaml` 的内容，你还可以查看 Service 的 [配置文件示例](../../app/service/configs/service.yaml)
@@ -183,7 +183,7 @@ docker ps -a
 ```
 
     CONTAINER ID   IMAGE                      COMMAND                  CREATED         STATUS                     PORTS                                            NAMES
-    0cfa5a79afb8   linktin/eb-service:1.7.0   "./server -conf /dat…"   5 seconds ago   Up 4 seconds               0.0.0.0:8011->8011/tcp, 0.0.0.0:9011->9011/tcp   sweet_yalow
+    0cfa5a79afb8   linktin/eb-service:1.8.0   "./server -conf /dat…"   5 seconds ago   Up 4 seconds               0.0.0.0:8011->8011/tcp, 0.0.0.0:9011->9011/tcp   sweet_yalow
 
 Service 状态为 `Up` 表示启动成功。
 
@@ -192,7 +192,7 @@ Service 状态为 `Up` 表示启动成功。
 > 确保当前目录下有 `job.yaml` 文件。
 
 ```bash
-docker run -d --network eventbridge -v $(pwd)/job.yaml:/data/conf/job.yaml linktin/eb-job:1.7.0
+docker run -d --network eventbridge -v $(pwd)/job.yaml:/data/conf/job.yaml linktin/eb-job:1.8.0
 ```
 
 下面是 `job.yaml` 的内容，你还可以查看 Job 的 [配置文件示例](../../app/job/configs/service.yaml)
@@ -226,7 +226,7 @@ docker ps -a
 ```
 
     CONTAINER ID   IMAGE                      COMMAND                  CREATED          STATUS                      PORTS                                            NAMES
-    b7c280bfde43   linktin/eb-job:1.7.0       "./server -conf /dat…"   5 seconds ago    Up 5 seconds                                                                 happy_hugle
+    b7c280bfde43   linktin/eb-job:1.8.0       "./server -conf /dat…"   5 seconds ago    Up 5 seconds                                                                 happy_hugle
 
 Job 状态为 `Up` 表示启动成功。
 

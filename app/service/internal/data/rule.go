@@ -74,18 +74,8 @@ func (repo *ruleRepo) ListRule(
 }
 
 func (repo *ruleRepo) CreateRule(
-	ctx context.Context, busName string, name string, status v1.RuleStatus, pattern *string, targets []*ir.Target,
+	ctx context.Context, busName string, name string, status v1.RuleStatus, pattern []byte, targets []*ir.Target,
 ) (uint64, error) {
-	uniqueIDTargets := make([]*ir.Target, 0, len(targets))
-	idTargetMap := make(map[uint64]*ir.Target, len(targets))
-	for _, t := range targets {
-		idTargetMap[t.ID] = t
-	}
-	for _, t := range idTargetMap {
-		uniqueIDTargets = append(uniqueIDTargets, t)
-	}
-	targets = uniqueIDTargets
-
 	var r *ent.Rule
 	err := entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {
 		// query data bus and lock
@@ -112,7 +102,7 @@ func (repo *ruleRepo) CreateRule(
 			SetBusName(busName).
 			SetName(name).
 			SetStatus(uint8(status)).
-			SetPattern(*pattern).
+			SetPattern(string(pattern)).
 			SetTargets(string(bts)).
 			Save(ctx)
 		if te != nil {
@@ -140,7 +130,7 @@ func (repo *ruleRepo) CreateRule(
 }
 
 func (repo *ruleRepo) UpdateRule(
-	ctx context.Context, bus string, name string, status v1.RuleStatus, pattern *string,
+	ctx context.Context, bus string, name string, status v1.RuleStatus, pattern []byte,
 ) error {
 	stmt := repo.db.Rule.Update().
 		Where(
@@ -151,7 +141,7 @@ func (repo *ruleRepo) UpdateRule(
 		stmt.SetStatus(uint8(status))
 	}
 	if pattern != nil {
-		stmt.SetPattern(*pattern)
+		stmt.SetPattern(string(pattern))
 	}
 
 	return entext.WithTx(ctx, repo.db, func(tx *ent.Tx) error {

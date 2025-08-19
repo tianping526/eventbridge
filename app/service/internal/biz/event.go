@@ -16,8 +16,8 @@ type EventRepo interface {
 	ListSchema(
 		ctx context.Context, source *string, sType *string, busName *string, time *timestamppb.Timestamp,
 	) ([]*Schema, error)
-	CreateSchema(ctx context.Context, source string, sType string, busName string, spec *string) error
-	UpdateSchema(ctx context.Context, source string, sType string, busName *string, spec *string) error
+	CreateSchema(ctx context.Context, source string, sType string, busName string, spec []byte) error
+	UpdateSchema(ctx context.Context, source string, sType string, busName *string, spec []byte) error
 	DeleteSchema(ctx context.Context, source string, sType *string) error
 }
 
@@ -81,7 +81,7 @@ func (uc *EventUseCase) ListSchema(
 }
 
 func (uc *EventUseCase) CreateSchema(
-	ctx context.Context, source string, sType string, busName string, spec *string,
+	ctx context.Context, source string, sType string, busName string, spec []byte,
 ) error {
 	err := EventSchemaSyntaxCheck(spec)
 	if err != nil {
@@ -93,7 +93,7 @@ func (uc *EventUseCase) CreateSchema(
 }
 
 func (uc *EventUseCase) UpdateSchema(
-	ctx context.Context, source string, sType string, busName *string, spec *string,
+	ctx context.Context, source string, sType string, busName *string, spec []byte,
 ) error {
 	err := EventSchemaSyntaxCheck(spec)
 	if err != nil {
