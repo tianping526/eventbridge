@@ -158,7 +158,7 @@ func (r *rocketMQConsumer) Receive(
 					if ok && errRPC.Code == int32(v2.Code_MESSAGE_NOT_FOUND) {
 						continue
 					}
-					r.log.Error(err)
+					r.log.WithContext(ctx).Error(err)
 					time.Sleep(time.Second)
 					continue
 				}
@@ -216,7 +216,7 @@ func (r *rocketMQConsumer) Receive(
 					if ok && errRPC.Code == int32(v2.Code_MESSAGE_NOT_FOUND) {
 						continue
 					}
-					r.log.Error(err)
+					r.log.WithContext(ctx).Error(err)
 					time.Sleep(time.Second)
 					continue
 				}
@@ -253,7 +253,7 @@ func (r *rocketMQConsumer) messageHandle(
 	// unmarshal event
 	evt, err := rule.NewEventExtFromBytes(mv.GetBody())
 	if err != nil {
-		r.log.Errorf("unmarshal event err: %s, event: %s", err, mv.GetBody())
+		r.log.WithContext(ctx).Errorf("unmarshal event err: %s, event: %s", err, mv.GetBody())
 		return
 	}
 
@@ -273,13 +273,13 @@ func (r *rocketMQConsumer) messageHandle(
 		if err == nil {      // success
 			err = r.c.Ack(ctx, mv)
 			if err != nil {
-				r.log.Errorf("ack event(%s) err: %s", evt.Key(), err)
+				r.log.WithContext(ctx).Errorf("ack event(%s) err: %s", evt.Key(), err)
 			}
 		}
 
 		if err != nil { // failed
 			if mv.GetDeliveryAttempt() >= 4 { // nolint:mnd
-				r.log.Errorf(
+				r.log.WithContext(ctx).Errorf(
 					"failed %d times, event key: %s, will into DLQ",
 					mv.GetDeliveryAttempt(), evt.Key(),
 				)
@@ -289,13 +289,13 @@ func (r *rocketMQConsumer) messageHandle(
 				// }
 			} else {
 				delayS := 10 + rand.Intn(10)
-				r.log.Errorf(
+				r.log.WithContext(ctx).Errorf(
 					"failed %d times, event key: %s, will retry after %ds",
 					mv.GetDeliveryAttempt(), evt.Key(), delayS,
 				)
 				err = r.c.ChangeInvisibleDuration(mv, time.Duration(delayS)*time.Second)
 				if err != nil {
-					r.log.Errorf("change event(%s) invisible duration err: %s", evt.Key(), err)
+					r.log.WithContext(ctx).Errorf("change event(%s) invisible duration err: %s", evt.Key(), err)
 				}
 			}
 		}
@@ -309,13 +309,13 @@ func (r *rocketMQConsumer) messageHandle(
 		if err == nil {      // success
 			err = r.c.Ack(ctx, mv)
 			if err != nil {
-				r.log.Errorf("ack event(%s) err: %s", evt.Key(), err)
+				r.log.WithContext(ctx).Errorf("ack event(%s) err: %s", evt.Key(), err)
 			}
 		}
 
 		if err != nil { // failed
 			if mv.GetDeliveryAttempt() >= 177 { // nolint:mnd
-				r.log.Errorf(
+				r.log.WithContext(ctx).Errorf(
 					"failed %d times, event key: %s, will into DLQ",
 					mv.GetDeliveryAttempt(), evt.Key(),
 				)
@@ -328,13 +328,13 @@ func (r *rocketMQConsumer) messageHandle(
 				if mv.GetDeliveryAttempt() < 10 { // nolint:mnd
 					delayS = int(math.Exp2(float64(mv.GetDeliveryAttempt() - 1)))
 				}
-				r.log.Errorf(
+				r.log.WithContext(ctx).Errorf(
 					"failed %d times, event key: %s, will retry after %ds",
 					mv.GetDeliveryAttempt(), evt.Key(), delayS,
 				)
 				err = r.c.ChangeInvisibleDuration(mv, time.Duration(delayS)*time.Second)
 				if err != nil {
-					r.log.Errorf("change event(%s) invisible duration err: %s", evt.Key(), err)
+					r.log.WithContext(ctx).Errorf("change event(%s) invisible duration err: %s", evt.Key(), err)
 				}
 			}
 		}

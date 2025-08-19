@@ -144,7 +144,9 @@ func (repo *eventRepo) handleSourceEvent(
 	ok, err = exec.Pattern(ctx, evt)
 	if err != nil {
 		if rule.IsMatcherNotFound(err) {
-			repo.log.Errorf("no matcher for rule(%s) in bus(%s) to match event", ruleName, evt.BusName)
+			repo.log.WithContext(ctx).Errorf(
+				"no matcher for rule(%s) in bus(%s) to match event", ruleName, evt.BusName,
+			)
 			err = nil
 			return
 		}
@@ -165,7 +167,9 @@ func (repo *eventRepo) handleSourceEvent(
 	targetEvents, err = exec.Transform(ctx, evt)
 	if err != nil {
 		if rule.IsTransformerNotFound(err) {
-			repo.log.Errorf("no transformer for rule(%s) in bus(%s) to transform event", ruleName, evt.BusName)
+			repo.log.WithContext(ctx).Errorf(
+				"no transformer for rule(%s) in bus(%s) to transform event", ruleName, evt.BusName,
+			)
 			err = nil
 			return
 		}
@@ -180,7 +184,9 @@ func (repo *eventRepo) handleSourceEvent(
 
 	// dispatch target event
 	if len(targetEvents) == 0 {
-		repo.log.Errorf("no target event for rule(%s) in bus(%s) to dispatch", ruleName, evt.BusName)
+		repo.log.WithContext(ctx).Errorf(
+			"no target event for rule(%s) in bus(%s) to dispatch", ruleName, evt.BusName,
+		)
 		return
 	}
 	if len(targetEvents) == 1 {
@@ -222,7 +228,7 @@ func (repo *eventRepo) dispatchTargetEvent(ctx context.Context, exec rule.Execut
 		return
 	}
 	if rule.IsDispatcherNotFound(err) {
-		repo.log.Errorf(
+		repo.log.WithContext(ctx).Errorf(
 			"no dispatcher for target(bus name: %s, rule name: %s, target id: %d) to dispatch",
 			evt.BusName, evt.RuleName, evt.TargetId,
 		)

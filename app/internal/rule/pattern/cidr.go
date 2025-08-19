@@ -12,7 +12,7 @@ func init() {
 	registerMatchFunc("cidr", newMatchFuncCidr)
 }
 
-func newMatchFuncCidr(_ context.Context, logger *log.Helper, spec interface{}) (matchFunc, error) {
+func newMatchFuncCidr(ctx context.Context, logger *log.Helper, spec interface{}) (matchFunc, error) {
 	cidr, ok := spec.(string)
 	if !ok {
 		return nil, fmt.Errorf("cidr spec(type=%T, val=%+v) should be string", spec, spec)
@@ -24,12 +24,14 @@ func newMatchFuncCidr(_ context.Context, logger *log.Helper, spec interface{}) (
 	return func(val interface{}) (bool, error) {
 		ipStr, ok := val.(string)
 		if !ok {
-			logger.Errorf("ip(type=%T, val=%+v) should be string", val, val)
+			logger.WithContext(ctx).Errorf("ip(type=%T, val=%+v) should be string", val, val)
 			return false, nil
 		}
 		ip := net.ParseIP(ipStr)
 		if ip == nil {
-			logger.Errorf("ipStr(%s) is not a valid textual representation of an IP address", ipStr)
+			logger.WithContext(ctx).Errorf(
+				"ipStr(%s) is not a valid textual representation of an IP address", ipStr,
+			)
 			return false, nil
 		}
 		return ipNet.Contains(ip), nil
