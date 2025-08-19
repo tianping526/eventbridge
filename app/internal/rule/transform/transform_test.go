@@ -2,7 +2,7 @@ package transform
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"reflect"
 	"testing"
 

@@ -2,7 +2,7 @@ package data
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 
 	"github.com/go-kratos/kratos/v2/log"

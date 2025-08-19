@@ -17,6 +17,7 @@ jobs:
       image: golang:1.25.0
       env:
         TEST_ENV: CI
+        GOEXPERIMENT: greenteagc,jsonv2
 
     services:
       postgres:
@@ -63,7 +64,7 @@ jobs:
         run: go generate ./...
 
       - name: Build
-        run: GOEXPERIMENT=greenteagc GOEXPERIMENT=jsonv2 go build -buildvcs=false ./...
+        run: go build -buildvcs=false ./...
 
       - name: Test
         # Because rocketmq DATA RACE turns off the race option
