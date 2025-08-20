@@ -264,7 +264,7 @@ func (repo *eventRepo) FetchSchema(ctx context.Context, source string, sType str
 			}
 			err = SetCacheSchema(ctx, repo.rc, id, s)
 			if err != nil {
-				repo.log.WithContext(ctx).Errorf("SetCacheSchema: %+v, schema: %+v", err, s)
+				repo.log.WithContext(ctx).Errorf("SetCacheSchema: %v, schema: %v", err, s)
 			}
 			return s, nil
 		}
@@ -364,7 +364,7 @@ func (repo *eventRepo) CreateSchema(
 		s,
 	)
 	if err != nil {
-		repo.log.WithContext(ctx).Errorf("SetCacheSchema: %+v, schema: %+v", err, s)
+		repo.log.WithContext(ctx).Errorf("SetCacheSchema: %v, schema: %v", err, s)
 	}
 
 	return nil
@@ -432,13 +432,13 @@ func (repo *eventRepo) UpdateSchema(
 		Only(ctx)
 	if err != nil {
 		if !ent.IsNotFound(err) {
-			repo.log.WithContext(ctx).Errorf("FetchDBSchema: %+v", err)
+			repo.log.WithContext(ctx).Errorf("FetchDBSchema: %v", err)
 			return nil
 		}
 	}
 	err = SetCacheSchema(ctx, repo.rc, id, s)
 	if err != nil {
-		repo.log.WithContext(ctx).Errorf("SetCacheSchema: %+v, schema: %+v", err, s)
+		repo.log.WithContext(ctx).Errorf("SetCacheSchema: %v, schema: %v", err, s)
 	}
 
 	return nil
@@ -462,14 +462,14 @@ func (repo *eventRepo) DeleteSchema(ctx context.Context, source string, sType *s
 	prefix := fmt.Sprintf("eb:event:schema:{%s:%s}*", source, t)
 	keys, cursor, err := repo.rc.Scan(ctx, 0, prefix, 500).Result()
 	if err != nil {
-		repo.log.WithContext(ctx).Errorf("scan schema cache keys(%s): %+v", prefix, err)
+		repo.log.WithContext(ctx).Errorf("scan schema cache keys(%s): %v", prefix, err)
 		return nil
 	}
 	for cursor > 0 {
 		var ks []string
 		ks, cursor, err = repo.rc.Scan(ctx, cursor, prefix, 500).Result()
 		if err != nil {
-			repo.log.WithContext(ctx).Errorf("scan schema cache keys(%s): %+v", prefix, err)
+			repo.log.WithContext(ctx).Errorf("scan schema cache keys(%s): %v", prefix, err)
 			break
 		}
 		keys = append(keys, ks...)
@@ -478,13 +478,16 @@ func (repo *eventRepo) DeleteSchema(ctx context.Context, source string, sType *s
 			break
 		}
 	}
-	verKeys := make([]string, 0, len(keys))
+	delKeys := make([]string, 0, len(keys)*2)
 	for _, key := range keys {
-		verKeys = append(verKeys, fmt.Sprintf("%s:version", key))
+		delKeys = append(delKeys, fmt.Sprintf("%s:version", key), key)
 	}
-	err = repo.rc.Del(ctx, append(verKeys, keys...)...).Err()
+	err = repo.rc.Del(ctx, delKeys...).Err()
 	if err != nil {
-		repo.log.WithContext(ctx).Errorf("delete schema cache keys: %+v", err)
+		repo.log.WithContext(ctx).Errorf(
+			"delete schema cache keys(%v): %v",
+			delKeys, err,
+		)
 	}
 
 	return nil

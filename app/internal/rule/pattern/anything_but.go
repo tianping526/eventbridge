@@ -140,6 +140,6 @@ func newMatchFuncAnythingBut(ctx context.Context, logger *log.Helper, spec inter
 			return false, nil
 		}, nil
 	default:
-		return nil, fmt.Errorf("anything-but unexpect pattern(type=%T, val=%+v)", spec, spec)
+		return nil, fmt.Errorf("anything-but unexpect pattern(type=%T, val=%v)", spec, spec)
 	}
 }

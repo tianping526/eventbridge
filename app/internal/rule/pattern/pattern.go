@@ -185,7 +185,7 @@ func parsePattern(
 			return true, nil
 		}, nil
 	default:
-		return nil, fmt.Errorf("unexpect pattern(type=%T, val=%+v)", relatedPattern, relatedPattern)
+		return nil, fmt.Errorf("unexpect pattern(type=%T, val=%v)", relatedPattern, relatedPattern)
 	}
 }
 

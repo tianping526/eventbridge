@@ -15,7 +15,7 @@ func init() {
 func newMatchFuncCidr(ctx context.Context, logger *log.Helper, spec interface{}) (matchFunc, error) {
 	cidr, ok := spec.(string)
 	if !ok {
-		return nil, fmt.Errorf("cidr spec(type=%T, val=%+v) should be string", spec, spec)
+		return nil, fmt.Errorf("cidr spec(type=%T, val=%v) should be string", spec, spec)
 	}
 	_, ipNet, err := net.ParseCIDR(cidr)
 	if err != nil {
@@ -24,7 +24,7 @@ func newMatchFuncCidr(ctx context.Context, logger *log.Helper, spec interface{})
 	return func(val interface{}) (bool, error) {
 		ipStr, ok := val.(string)
 		if !ok {
-			logger.WithContext(ctx).Errorf("ip(type=%T, val=%+v) should be string", val, val)
+			logger.WithContext(ctx).Errorf("ip(type=%T, val=%v) should be string", val, val)
 			return false, nil
 		}
 		ip := net.ParseIP(ipStr)
