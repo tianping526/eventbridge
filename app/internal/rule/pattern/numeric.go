@@ -16,7 +16,7 @@ type comparator func(val float64) bool
 func newMatchFuncNumeric(_ context.Context, _ *log.Helper, spec interface{}) (matchFunc, error) {
 	numeric, ok := spec.([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("numeric spec(type=%T, val=%+v) should be []interface{}", spec, spec)
+		return nil, fmt.Errorf("numeric spec(type=%T, val=%v) should be []interface{}", spec, spec)
 	}
 
 	if len(numeric) < 2 { //nolint:mnd
@@ -30,7 +30,7 @@ func newMatchFuncNumeric(_ context.Context, _ *log.Helper, spec interface{}) (ma
 		num, ok := numeric[2*i+1].(float64)
 		if !ok {
 			return nil, fmt.Errorf(
-				"numeric spec should be compared with number, not %T(value=%+v)",
+				"numeric spec should be compared with number, not %T(value=%v)",
 				numeric[2*i+1], numeric[2*i+1],
 			)
 		}
@@ -57,7 +57,7 @@ func newMatchFuncNumeric(_ context.Context, _ *log.Helper, spec interface{}) (ma
 			})
 		default:
 			return nil, fmt.Errorf(
-				"unknown comparison operator %+v(index=%d)",
+				"unknown comparison operator %v(index=%d)",
 				numeric[2*i], 2*i,
 			)
 		}

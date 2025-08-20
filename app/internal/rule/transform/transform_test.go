@@ -325,7 +325,7 @@ func TestTransform(t *testing.T) {
 	for idx, tt := range transformTests {
 		tfr, err := NewTransformer(context.Background(), logger, tt.target)
 		if err != nil {
-			t.Fatalf("case(index=%d) err: %+v", idx, err)
+			t.Fatalf("case(index=%d) err: %v", idx, err)
 		}
 		for ei, evt := range tt.events {
 			ee := &rule.EventExt{

@@ -230,12 +230,11 @@ func (repo *eventRepo) ListSchema(
 
 // FetchSchema from cache; if missing, calls the source method and then adds it to the cache.
 func (repo *eventRepo) FetchSchema(ctx context.Context, source string, sType string) (*ent.EventSchema, error) {
-	id := fmt.Sprintf("%s:%s", source, sType)
-	s, err := repo.FetchCacheSchema(ctx, id)
+	s, err := repo.FetchCacheSchema(ctx, source, sType)
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			fetchRaw := false
-			sfKey := fmt.Sprintf("sf:eb:event:schema:{%s}", id)
+			sfKey := fmt.Sprintf("sf:eb:event:schema:{%s}:%s", source, sType)
 			var res interface{}
 			res, err, _ = repo.sf.Do(sfKey, func() (interface{}, error) {
 				fetchRaw = true
@@ -262,9 +261,9 @@ func (repo *eventRepo) FetchSchema(ctx context.Context, source string, sType str
 			if !fetchRaw {
 				return s, nil
 			}
-			err = SetCacheSchema(ctx, repo.rc, id, s)
+			err = SetCacheSchema(ctx, repo.rc, source, sType, s)
 			if err != nil {
-				repo.log.WithContext(ctx).Errorf("SetCacheSchema: %+v, schema: %+v", err, s)
+				repo.log.WithContext(ctx).Errorf("SetCacheSchema: %v, schema: %v", err, s)
 			}
 			return s, nil
 		}
@@ -280,8 +279,8 @@ func (repo *eventRepo) FetchSchema(ctx context.Context, source string, sType str
 }
 
 // FetchCacheSchema from redis
-func (repo *eventRepo) FetchCacheSchema(ctx context.Context, id string) (*ent.EventSchema, error) {
-	key := fmt.Sprintf("eb:event:schema:{%s}", id)
+func (repo *eventRepo) FetchCacheSchema(ctx context.Context, source string, sType string) (*ent.EventSchema, error) {
+	key := fmt.Sprintf("eb:event:schema:{%s}:%s", source, sType)
 	val, err := repo.rc.Get(ctx, key).Bytes()
 	if err != nil {
 		return nil, err
@@ -298,8 +297,8 @@ func (repo *eventRepo) FetchCacheSchema(ctx context.Context, id string) (*ent.Ev
 }
 
 // SetCacheSchema to redis cache
-func SetCacheSchema(ctx context.Context, rc redis.Cmdable, id string, val *ent.EventSchema) error {
-	key := fmt.Sprintf("eb:event:schema:{%s}", id)
+func SetCacheSchema(ctx context.Context, rc redis.Cmdable, source string, sType string, val *ent.EventSchema) error {
+	key := fmt.Sprintf("eb:event:schema:{%s}:%s", source, sType)
 	verKey := fmt.Sprintf("%s:version", key)
 	bs, err := json.Marshal(val)
 	if err != nil {
@@ -360,11 +359,12 @@ func (repo *eventRepo) CreateSchema(
 	err = SetCacheSchema(
 		ctx,
 		repo.rc,
-		fmt.Sprintf("%s:%s", source, sType),
+		source,
+		sType,
 		s,
 	)
 	if err != nil {
-		repo.log.WithContext(ctx).Errorf("SetCacheSchema: %+v, schema: %+v", err, s)
+		repo.log.WithContext(ctx).Errorf("SetCacheSchema: %v, schema: %v", err, s)
 	}
 
 	return nil
@@ -423,7 +423,6 @@ func (repo *eventRepo) UpdateSchema(
 	}
 
 	// update cache
-	id := fmt.Sprintf("%s:%s", source, sType)
 	s, err := repo.db.EventSchema.Query().
 		Where(
 			eventschema.Source(source),
@@ -432,13 +431,13 @@ func (repo *eventRepo) UpdateSchema(
 		Only(ctx)
 	if err != nil {
 		if !ent.IsNotFound(err) {
-			repo.log.WithContext(ctx).Errorf("FetchDBSchema: %+v", err)
+			repo.log.WithContext(ctx).Errorf("FetchDBSchema: %v", err)
 			return nil
 		}
 	}
-	err = SetCacheSchema(ctx, repo.rc, id, s)
+	err = SetCacheSchema(ctx, repo.rc, source, sType, s)
 	if err != nil {
-		repo.log.WithContext(ctx).Errorf("SetCacheSchema: %+v, schema: %+v", err, s)
+		repo.log.WithContext(ctx).Errorf("SetCacheSchema: %v, schema: %v", err, s)
 	}
 
 	return nil
@@ -455,21 +454,30 @@ func (repo *eventRepo) DeleteSchema(ctx context.Context, source string, sType *s
 	}
 
 	// update cache
-	t := ""
 	if sType != nil {
-		t = *sType
+		key := fmt.Sprintf("eb:event:schema:{%s}:%s", source, *sType)
+		verKey := fmt.Sprintf("%s:version", key)
+		err = repo.rc.Del(ctx, verKey, key).Err()
+		if err != nil {
+			repo.log.WithContext(ctx).Errorf(
+				"delete schema cache keys(%v): %v",
+				[]string{verKey, key}, err,
+			)
+		}
+		return nil
 	}
-	prefix := fmt.Sprintf("eb:event:schema:{%s:%s}*", source, t)
+
+	prefix := fmt.Sprintf("eb:event:schema:{%s}:*", source)
 	keys, cursor, err := repo.rc.Scan(ctx, 0, prefix, 500).Result()
 	if err != nil {
-		repo.log.WithContext(ctx).Errorf("scan schema cache keys(%s): %+v", prefix, err)
+		repo.log.WithContext(ctx).Errorf("scan schema cache keys(%s): %v", prefix, err)
 		return nil
 	}
 	for cursor > 0 {
 		var ks []string
 		ks, cursor, err = repo.rc.Scan(ctx, cursor, prefix, 500).Result()
 		if err != nil {
-			repo.log.WithContext(ctx).Errorf("scan schema cache keys(%s): %+v", prefix, err)
+			repo.log.WithContext(ctx).Errorf("scan schema cache keys(%s): %v", prefix, err)
 			break
 		}
 		keys = append(keys, ks...)
@@ -478,13 +486,15 @@ func (repo *eventRepo) DeleteSchema(ctx context.Context, source string, sType *s
 			break
 		}
 	}
-	verKeys := make([]string, 0, len(keys))
-	for _, key := range keys {
-		verKeys = append(verKeys, fmt.Sprintf("%s:version", key))
+	if len(keys) == 0 {
+		return nil
 	}
-	err = repo.rc.Del(ctx, append(verKeys, keys...)...).Err()
+	err = repo.rc.Del(ctx, keys...).Err()
 	if err != nil {
-		repo.log.WithContext(ctx).Errorf("delete schema cache keys: %+v", err)
+		repo.log.WithContext(ctx).Errorf(
+			"delete schema cache keys(%v): %v",
+			keys, err,
+		)
 	}
 
 	return nil

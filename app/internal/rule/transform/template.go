@@ -40,7 +40,7 @@ func newTransformFuncTemplate(
 			jsonpath, ok := val.(string)
 			if !ok {
 				return nil, fmt.Errorf(
-					"transformer(TEMPLATE) value.%s(value=%+v, type=%T) should be string",
+					"transformer(TEMPLATE) value.%s(value=%v, type=%T) should be string",
 					trimmedKey, val, val,
 				)
 			}

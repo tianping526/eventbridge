@@ -16,7 +16,7 @@ func init() {
 func newMatchFuncExists(_ context.Context, _ *log.Helper, spec interface{}) (matchFunc, error) {
 	exists, ok := spec.(bool)
 	if !ok {
-		return nil, fmt.Errorf("exists spec(type=%T, val=%+v) should be bool", spec, spec)
+		return nil, fmt.Errorf("exists spec(type=%T, val=%v) should be bool", spec, spec)
 	}
 	if exists {
 		return func(val interface{}) (bool, error) {

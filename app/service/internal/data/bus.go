@@ -197,13 +197,13 @@ func (repo *busRepo) DeleteBus(ctx context.Context, busName string) error {
 		).
 		All(ctx)
 	if err != nil {
-		repo.log.WithContext(ctx).Errorf("query schema: %+v", err)
+		repo.log.WithContext(ctx).Errorf("query schema: %v", err)
 		return nil
 	}
 	for _, s := range schemas {
-		err = SetCacheSchema(ctx, repo.rc, fmt.Sprintf("%s:%s", s.Source, s.Type), s)
+		err = SetCacheSchema(ctx, repo.rc, s.Source, s.Type, s)
 		if err != nil {
-			repo.log.WithContext(ctx).Errorf("SetCacheSchema: %+v, schema: %+v", err, s)
+			repo.log.WithContext(ctx).Errorf("SetCacheSchema: %v, schema: %v", err, s)
 		}
 	}
 

@@ -15,7 +15,7 @@ func init() {
 func newMatchFuncSuffix(_ context.Context, _ *log.Helper, spec interface{}) (matchFunc, error) {
 	suffix, ok := spec.(string)
 	if !ok {
-		return nil, fmt.Errorf("suffix spec(type=%T, val=%+v) should be string", spec, spec)
+		return nil, fmt.Errorf("suffix spec(type=%T, val=%v) should be string", spec, spec)
 	}
 	return func(val interface{}) (bool, error) {
 		strVal, ok := val.(string)
