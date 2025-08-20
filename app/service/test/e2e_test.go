@@ -296,27 +296,80 @@ func TestUpdateSchema(t *testing.T) {
 }
 
 func TestDeleteSchema(t *testing.T) {
-	convey.Convey("Given everything positive", t, func() {
+	convey.Convey("Given one schema exists", t, func() {
 		var (
-			ctx   = context.Background()
-			sType = "type9"
-			req   = &v1.DeleteSchemaRequest{
-				Source: "source9",
-				Type:   &sType,
-			}
+			ctx    = context.Background()
+			source = "source9"
+			sType  = "type9"
 		)
 		spec := "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\"," +
 			"\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"string\"}}}"
 		_, err := sv.CreateSchema(ctx, &v1.CreateSchemaRequest{
-			Source:  "source9",
+			Source:  source,
 			Type:    sType,
 			BusName: "Default",
 			Spec:    spec,
 		})
 		convey.So(err, convey.ShouldBeNil)
-		convey.Convey("When DeleteSchema", func() {
-			_, err := sv.DeleteSchema(ctx, req)
-			convey.Convey("Then err should be nil.p1 should not be nil.", func() {
+		// ensure cache schema exists
+		schema, err := sv.ListSchema(ctx, &v1.ListSchemaRequest{
+			Source: &source,
+			Type:   &sType,
+		})
+		convey.So(err, convey.ShouldBeNil)
+		convey.So(len(schema.Schemas), convey.ShouldEqual, 1)
+		convey.Convey("When delete schema by source and type", func() {
+			_, err = sv.DeleteSchema(ctx, &v1.DeleteSchemaRequest{
+				Source: source,
+				Type:   &sType,
+			})
+			convey.Convey("Then err should be nil.", func() {
+				convey.So(err, convey.ShouldBeNil)
+			})
+		})
+	})
+
+	convey.Convey("Given two schemas exist with same source and different type", t, func() {
+		var (
+			ctx    = context.Background()
+			source = "source10"
+			sType1 = "type10"
+			sType2 = "type11"
+		)
+		spec := "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\"," +
+			"\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"string\"}}}"
+		_, err := sv.CreateSchema(ctx, &v1.CreateSchemaRequest{
+			Source:  source,
+			Type:    sType1,
+			BusName: "Default",
+			Spec:    spec,
+		})
+		convey.So(err, convey.ShouldBeNil)
+		_, err = sv.CreateSchema(ctx, &v1.CreateSchemaRequest{
+			Source:  source,
+			Type:    sType2,
+			BusName: "Default",
+			Spec:    spec,
+		})
+		convey.So(err, convey.ShouldBeNil)
+		// ensure cache schema exists
+		schema, err := sv.ListSchema(ctx, &v1.ListSchemaRequest{
+			Source: &source,
+			Type:   &sType1,
+		})
+		convey.So(err, convey.ShouldBeNil)
+		convey.So(len(schema.Schemas), convey.ShouldEqual, 1)
+		schema, err = sv.ListSchema(ctx, &v1.ListSchemaRequest{
+			Source: &source,
+			Type:   &sType2,
+		})
+		convey.So(err, convey.ShouldBeNil)
+		convey.So(len(schema.Schemas), convey.ShouldEqual, 1)
+		convey.Convey("When delete schema by source", func() {
+			_, err = sv.DeleteSchema(ctx, &v1.DeleteSchemaRequest{
+				Source: source,
+			})
+			convey.Convey("Then err should be nil.", func() {
 				convey.So(err, convey.ShouldBeNil)
 			})
 		})
