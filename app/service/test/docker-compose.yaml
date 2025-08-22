@@ -59,16 +59,16 @@ services:
         set -e
         
         # Create Default data bus
-        until ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success; do
+        until ./mqadmin updateTopic -n mq-namesrv:9876 -c DefaultCluster -t EBInterBusDefault -a +message.type=NORMAL | tee /dev/stderr | grep success; do
         echo "Retrying updateTopic for EBInterBusDefault..."
         sleep 1
         done
         
-        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterDelayBusDefault -c DefaultCluster -r 8 -w 8 -a +message.type=DELAY | tee /dev/stderr | grep success
-        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
-        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
+        ./mqadmin updateTopic -n mq-namesrv:9876 -c DefaultCluster -t EBInterDelayBusDefault -a +message.type=DELAY | tee /dev/stderr | grep success
+        ./mqadmin updateTopic -n mq-namesrv:9876 -c DefaultCluster -t EBInterTargetExpDecayBusDefault -a +message.type=NORMAL | tee /dev/stderr | grep success
+        ./mqadmin updateTopic -n mq-namesrv:9876 -c DefaultCluster -t EBInterTargetBackoffBusDefault -a +message.type=NORMAL | tee /dev/stderr | grep success
 
-        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultSource -r 3 | tee /dev/stderr | grep success
-        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultSourceDelay -r 3 | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultSource | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultSourceDelay | tee /dev/stderr | grep success
         ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultTargetExpDecay -r 176 | tee /dev/stderr | grep success
         ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultTargetBackoff -r 3 | tee /dev/stderr | grep success
