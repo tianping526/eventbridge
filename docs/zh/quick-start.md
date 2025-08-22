@@ -75,17 +75,17 @@ services:
         set -e
 
         # Create Default data bus
-        until ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success; do
+        until ./mqadmin updateTopic -n mq-namesrv:9876 -c DefaultCluster -t EBInterBusDefault -a +message.type=NORMAL | tee /dev/stderr | grep success; do
         echo "Retrying updateTopic for EBInterBusDefault..."
         sleep 1
         done
 
-        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterDelayBusDefault -c DefaultCluster -r 8 -w 8 -a +message.type=DELAY | tee /dev/stderr | grep success
-        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
-        ./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusDefault -c DefaultCluster -r 8 -w 8 | tee /dev/stderr | grep success
+        ./mqadmin updateTopic -n mq-namesrv:9876 -c DefaultCluster -t EBInterDelayBusDefault -a +message.type=DELAY | tee /dev/stderr | grep success
+        ./mqadmin updateTopic -n mq-namesrv:9876 -c DefaultCluster -t EBInterTargetExpDecayBusDefault -a +message.type=NORMAL | tee /dev/stderr | grep success
+        ./mqadmin updateTopic -n mq-namesrv:9876 -c DefaultCluster -t EBInterTargetBackoffBusDefault -a +message.type=NORMAL | tee /dev/stderr | grep success
 
-        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultSource -r 3 | tee /dev/stderr | grep success
-        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultSourceDelay -r 3 | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultSource | tee /dev/stderr | grep success
+        ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultSourceDelay | tee /dev/stderr | grep success
         ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultTargetExpDecay -r 176 | tee /dev/stderr | grep success
         ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g DefaultTargetBackoff -r 3 | tee /dev/stderr | grep success
 
@@ -112,7 +112,7 @@ networks:
         的格式。
         - `EBInterTargetExpDecayBusDefault` 订阅组的重试次数设置为 176 次，如果设置错误，Job 将无法正确处理指数衰减策略的重试。
         - `EBInterTargetBackoffBusDefault` 订阅组的重试次数设置为 3 次，如果设置错误，Job 将无法正确处理退避策略的重试。
-        - 其他订阅组的重试次数设置为 3 次，代表 Event 在 Job 内部流转失败时的重试次数。
+        - 其他订阅组的重试次数设置为默认的 16 次，代表 Event 在 Job 内部失败时的重试次数。
 
 启动Docker Compose：
 
@@ -395,13 +395,13 @@ curl --location '127.0.0.1:8011/v1/eventbridge/bus' \
 如果不添加这些参数，RocketMQ 会将这些 Topic 视为普通 Topic，Event 的处理将不再是顺序的。
 
 ```bash
-./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
-./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterDelayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=DELAY | tee /dev/stderr | grep success        
-./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetExpDecayBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
-./mqadmin updateTopic -n mq-namesrv:9876 -t EBInterTargetBackoffBusOrderly -c DefaultCluster -r 8 -w 8 -a +message.type=FIFO -o true | tee /dev/stderr | grep success
+./mqadmin updateTopic -n mq-namesrv:9876 -c DefaultCluster -t EBInterBusOrderly -a +message.type=FIFO -o true | tee /dev/stderr | grep success
+./mqadmin updateTopic -n mq-namesrv:9876 -c DefaultCluster -t EBInterDelayBusOrderly -a +message.type=DELAY | tee /dev/stderr | grep success        
+./mqadmin updateTopic -n mq-namesrv:9876 -c DefaultCluster -t EBInterTargetExpDecayBusOrderly -a +message.type=FIFO -o true | tee /dev/stderr | grep success
+./mqadmin updateTopic -n mq-namesrv:9876 -c DefaultCluster -t EBInterTargetBackoffBusOrderly -a +message.type=FIFO -o true | tee /dev/stderr | grep success 
 
-./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlySource -r 3 -o true | tee /dev/stderr | grep success                          
-./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlySourceDelay -r 3 | tee /dev/stderr | grep success                     
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlySource -o true | tee /dev/stderr | grep success                          
+./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlySourceDelay | tee /dev/stderr | grep success                     
 ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlyTargetExpDecay -r 176 -o true | tee /dev/stderr | grep success          
 ./mqadmin updateSubGroup -n mq-namesrv:9876 -c DefaultCluster -g OrderlyTargetBackoff -r 3 -o true | tee /dev/stderr | grep success
 ```
