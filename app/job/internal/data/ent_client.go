@@ -38,7 +38,7 @@ func NewEntClient(
 		})
 		db, err = splunksql.Open(conf.Data.Database.Driver, conf.Data.Database.Source)
 	case dialect.Postgres:
-		splunksql.Register(dialect.Postgres, splunksql.InstrumentationConfig{
+		splunksql.Register("pgx", splunksql.InstrumentationConfig{
 			DBSystem: splunksql.DBSystemPostgreSQL,
 		})
 		db, err = splunksql.Open("pgx", conf.Data.Database.Source)
