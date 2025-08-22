@@ -147,7 +147,7 @@ indicates that the Default Bus's Topics and subscription groups were created suc
 > Ensure the current directory contains a `service.yaml` file.
 
 ```bash
-docker run -d --network eventbridge -p 8011:8011 -p 9011:9011 -v $(pwd)/service.yaml:/data/conf/service.yaml linktin/eb-service:1.8.1
+docker run -d --network eventbridge -p 8011:8011 -p 9011:9011 -v $(pwd)/service.yaml:/data/conf/service.yaml linktin/eb-service:1.9.0
 ```
 
 Below is the content of `service.yaml`.
@@ -188,7 +188,7 @@ docker ps -a
 ```
 
     CONTAINER ID   IMAGE                      COMMAND                  CREATED         STATUS                     PORTS                                            NAMES
-    0cfa5a79afb8   linktin/eb-service:1.8.1   "./server -conf /dat…"   5 seconds ago   Up 4 seconds               0.0.0.0:8011->8011/tcp, 0.0.0.0:9011->9011/tcp   sweet_yalow
+    0cfa5a79afb8   linktin/eb-service:1.9.0   "./server -conf /dat…"   5 seconds ago   Up 4 seconds               0.0.0.0:8011->8011/tcp, 0.0.0.0:9011->9011/tcp   sweet_yalow
 
 Successful startup of the Service container with status `Up` indicates that the Service is running correctly.
 
@@ -197,7 +197,7 @@ Successful startup of the Service container with status `Up` indicates that the 
 > Ensure the current directory contains a `job.yaml` file.
 
 ```bash
-docker run -d --network eventbridge -v $(pwd)/job.yaml:/data/conf/job.yaml linktin/eb-job:1.8.1
+docker run -d --network eventbridge -v $(pwd)/job.yaml:/data/conf/job.yaml linktin/eb-job:1.9.0
 ```
 
 Below is the content of `job.yaml`.
@@ -232,7 +232,7 @@ docker ps -a
 ```
 
     CONTAINER ID   IMAGE                      COMMAND                  CREATED          STATUS                      PORTS                                            NAMES
-    b7c280bfde43   linktin/eb-job:1.8.1       "./server -conf /dat…"   5 seconds ago    Up 5 seconds                                                                 happy_hugle
+    b7c280bfde43   linktin/eb-job:1.9.0       "./server -conf /dat…"   5 seconds ago    Up 5 seconds                                                                 happy_hugle
 
 Successful startup of the Job container with status `Up` indicates that the Job is running correctly.
 
