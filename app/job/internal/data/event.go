@@ -59,7 +59,7 @@ func (repo *eventRepo) HandleEvent(ctx context.Context, evt *rule.EventExt) erro
 		return nil
 	}
 
-	if evt.RuleName != "" { // consume backoff queue and dispatch target event
+	if evt.RuleName != "" { // consume retry queue and dispatch target event
 		exec, ok := executors[evt.RuleName]
 		if !ok {
 			return fmt.Errorf("no executor for rule(%s) in bus(%s) to dispatch target event", evt.RuleName, evt.BusName)
@@ -68,7 +68,7 @@ func (repo *eventRepo) HandleEvent(ctx context.Context, evt *rule.EventExt) erro
 	}
 
 	// consume source event. match rule, transform event and dispatch target event.
-	// send to backoff queue if dispatch failed.
+	// send to retry queue if dispatch failed.
 	if len(executors) == 1 {
 		for ruleName, exec := range executors {
 			return repo.handleSourceEvent(ctx, ruleName, exec, evt)
@@ -236,7 +236,7 @@ func (repo *eventRepo) dispatchTargetEvent(ctx context.Context, exec rule.Execut
 		return
 	}
 
-	// dispatch failed, send it to backoff queue
+	// dispatch failed, send it to retry queue
 	startTime := time.Now()
 	err = repo.sd.Send(ctx, evt)
 	repo.m.PostEventDurationSec.Record(
@@ -255,7 +255,7 @@ func (repo *eventRepo) dispatchTargetEvent(ctx context.Context, exec rule.Execut
 				attribute.String(metricPostEventResult, fmt.Sprintf("%T", err)),
 			),
 		)
-		err = fmt.Errorf("send event(%s) to backoff queue err: %s", evt.Key(), err)
+		err = fmt.Errorf("send event(%s) to retry queue err: %s", evt.Key(), err)
 		return
 	}
 	repo.m.PostEventCount.Add(
