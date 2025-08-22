@@ -33,8 +33,14 @@ func NewEntClient(
 	)
 	switch conf.Data.Database.Driver {
 	case dialect.MySQL:
+		splunksql.Register(dialect.MySQL, splunksql.InstrumentationConfig{
+			DBSystem: splunksql.DBSystemMySQL,
+		})
 		db, err = splunksql.Open(conf.Data.Database.Driver, conf.Data.Database.Source)
 	case dialect.Postgres:
+		splunksql.Register(dialect.Postgres, splunksql.InstrumentationConfig{
+			DBSystem: splunksql.DBSystemPostgreSQL,
+		})
 		db, err = splunksql.Open("pgx", conf.Data.Database.Source)
 	default:
 		return nil, nil, fmt.Errorf("unsupported db driver: %s", conf.Data.Database.Driver)
