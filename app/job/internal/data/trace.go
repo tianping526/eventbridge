@@ -34,7 +34,6 @@ func NewTracerProvider(
 		traceSDK.WithResource(resource.NewSchemaless(
 			semConv.ServiceNameKey.String(ai.Name),
 		)),
-		traceSDK.WithSampler(traceSDK.ParentBased(traceSDK.TraceIDRatioBased(1.0))),
 	)
 	otel.SetTracerProvider(tp)
 	return tp, func() {
