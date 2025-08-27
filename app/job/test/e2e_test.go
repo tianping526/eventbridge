@@ -323,7 +323,7 @@ func TestPostEventOrderly(t *testing.T) { //nolint:gocyclo
 		t.Errorf("unexpect target num: %d", len(rcvRes))
 	}
 	for _, rcv := range rcvRes {
-		if !reflect.DeepEqual(rcv[1], fmt.Sprintf(`{"code":"%s:i am test content"}`, rcv[0])) {
+		if rcv[1] != fmt.Sprintf(`{"code":"%s:i am test content"}`, rcv[0]) {
 			t.Errorf("unexpect body: %s", rcv[1])
 		}
 	}
@@ -375,7 +375,7 @@ func TestPostEventOrderly(t *testing.T) { //nolint:gocyclo
 		t.Errorf("unexpect target num: %d", len(rcvRes))
 	}
 	for _, rcv := range rcvRes {
-		if !reflect.DeepEqual(rcv[1], fmt.Sprintf(`{"code":"%s:%d"}`, rcv[0], pubTime.Unix())) {
+		if rcv[1] != fmt.Sprintf(`{"code":"%s:%d"}`, rcv[0], pubTime.Unix()) {
 			t.Errorf("unexpect body: %s", rcv[1])
 		}
 	}

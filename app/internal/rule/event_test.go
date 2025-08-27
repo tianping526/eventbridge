@@ -22,17 +22,17 @@ func TestEventExtGetFieldByPath(t *testing.T) {
 	val, _ := e.GetFieldByPath([]string{"id"})
 	strID, _ := val.(string)
 	id, _ := strconv.ParseUint(strID, 10, 64)
-	if !reflect.DeepEqual(id, uint64(123)) {
+	if id != uint64(123) {
 		t.Fatalf("id expect 123, actaul %d", id)
 	}
 	val, _ = e.GetFieldByPath([]string{"data", "a"})
 	a, _ := val.(float64)
-	if !reflect.DeepEqual(a, float64(1)) {
+	if a != float64(1) {
 		t.Fatalf("data.a expect 1, actaul %f", a)
 	}
 	val, _ = e.GetFieldByPath([]string{"data", "b", "c"})
 	c, _ := val.(float64)
-	if !reflect.DeepEqual(c, float64(2)) {
+	if c != float64(2) {
 		t.Fatalf("data.b.c expect 1, actaul %f", c)
 	}
 	val, _ = e.GetFieldByPath([]string{"data", "b"})
