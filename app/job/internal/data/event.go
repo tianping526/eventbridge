@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 
@@ -91,7 +91,7 @@ func (repo *eventRepo) retryDispatchTargetEvent(
 ) (err error) {
 	// trace
 	span := trace.SpanFromContext(ctx)
-	span.SetAttributes(semconv.MessagingConsumerIDKey.String(evt.Key()))
+	span.SetAttributes(semconv.MessagingRocketMQMessageKeysKey.String(evt.Key()))
 	defer func() {
 		if err != nil {
 			span.SetStatus(codes.Error, err.Error())
@@ -128,7 +128,7 @@ func (repo *eventRepo) handleSourceEvent(
 	ctx, span = otr.Start(
 		ctx, "HandleEvent", trace.WithSpanKind(trace.SpanKindConsumer),
 	)
-	span.SetAttributes(semconv.MessagingConsumerIDKey.String(evt.Key()))
+	span.SetAttributes(semconv.MessagingRocketMQMessageKeysKey.String(evt.Key()))
 	span.SetAttributes(attribute.String("ruleName", ruleName))
 	defer func() {
 		if err != nil {
@@ -212,7 +212,7 @@ func (repo *eventRepo) dispatchTargetEvent(ctx context.Context, exec rule.Execut
 	ctx, span = otr.Start(
 		ctx, "DispatchTargetEvent", trace.WithSpanKind(trace.SpanKindProducer),
 	)
-	span.SetAttributes(semconv.MessagingConsumerIDKey.String(evt.Key()))
+	span.SetAttributes(semconv.MessagingRocketMQMessageKeysKey.String(evt.Key()))
 	defer func() {
 		if err != nil {
 			span.SetStatus(codes.Error, err.Error())
