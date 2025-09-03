@@ -18,8 +18,8 @@ require (
 	entgo.io/ent v0.14.5
 	github.com/apache/rocketmq-clients/golang/v5 v5.1.2
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/go-kratos/kratos/contrib/log/zap/v2 v2.0.0-20250828133012-308cfee50a57
-	github.com/go-kratos/kratos/contrib/middleware/validate/v2 v2.0.0-20250828133012-308cfee50a57
+	github.com/go-kratos/kratos/contrib/log/zap/v2 v2.0.0-20250903025306-5bcf5bbe2743
+	github.com/go-kratos/kratos/contrib/middleware/validate/v2 v2.0.0-20250903025306-5bcf5bbe2743
 	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golang-jwt/jwt/v5 v5.3.0
@@ -226,4 +226,4 @@ require (
 	pluginrpc.com/pluginrpc v0.5.0 // indirect
 )
 
-replace github.com/apache/rocketmq-clients/golang/v5 v5.1.2 => github.com/tianping526/rocketmq-clients/golang/v5 v5.0.0-20250825035908-5cee0e6361ac
+replace github.com/apache/rocketmq-clients/golang/v5 v5.1.2 => github.com/tianping526/rocketmq-clients/golang/v5 v5.0.0-20250612091445-5c7a9b25d87f

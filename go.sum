@@ -181,10 +181,10 @@ github.com/go-kratos/kratos/cmd/protoc-gen-go-errors/v2 v2.0.0-20250527152916-d6
 github.com/go-kratos/kratos/cmd/protoc-gen-go-errors/v2 v2.0.0-20250527152916-d6f5f00cf562/go.mod h1:SuDSy47Q6t3bc8xNA6wYew+nMnmjs5WP3ub75OO5cGg=
 github.com/go-kratos/kratos/cmd/protoc-gen-go-http/v2 v2.0.0-20250527152916-d6f5f00cf562 h1:0PFxdEMhKHgDHCKTVYOLMZiw8oRV/b6tJmwmv1/JdBM=
 github.com/go-kratos/kratos/cmd/protoc-gen-go-http/v2 v2.0.0-20250527152916-d6f5f00cf562/go.mod h1:KM6kzp9bXgo9JzweRBejhuyXTZ4JA9hfDCTbknVyS5Q=
-github.com/go-kratos/kratos/contrib/log/zap/v2 v2.0.0-20250828133012-308cfee50a57 h1:rfn/S8x4bc0+o5yeYGiH8WdfFtuyLEFPT1grr0Hke78=
-github.com/go-kratos/kratos/contrib/log/zap/v2 v2.0.0-20250828133012-308cfee50a57/go.mod h1:2dBRhAOrPQptII8Bv+ox5X9Ryx7xlPDK77ZD6Go8bqg=
-github.com/go-kratos/kratos/contrib/middleware/validate/v2 v2.0.0-20250828133012-308cfee50a57 h1:rZvR7seWNig9jJRB8W8bX0uMw1xqGzeA1No1YWQUXVk=
-github.com/go-kratos/kratos/contrib/middleware/validate/v2 v2.0.0-20250828133012-308cfee50a57/go.mod h1:NRPjykSmmscIXLP6Qv42b/UFhwZgxH9bD9OLgbMXMqs=
+github.com/go-kratos/kratos/contrib/log/zap/v2 v2.0.0-20250903025306-5bcf5bbe2743 h1:J1vvvemV/cgO8JBxxiY9dmZzqvFfj58HN88m3QoPekk=
+github.com/go-kratos/kratos/contrib/log/zap/v2 v2.0.0-20250903025306-5bcf5bbe2743/go.mod h1:2dBRhAOrPQptII8Bv+ox5X9Ryx7xlPDK77ZD6Go8bqg=
+github.com/go-kratos/kratos/contrib/middleware/validate/v2 v2.0.0-20250903025306-5bcf5bbe2743 h1:zo3yuDi1vOz//k4auMcp+hz7xzRV56HCSF4lsmz4LIw=
+github.com/go-kratos/kratos/contrib/middleware/validate/v2 v2.0.0-20250903025306-5bcf5bbe2743/go.mod h1:NRPjykSmmscIXLP6Qv42b/UFhwZgxH9bD9OLgbMXMqs=
 github.com/go-kratos/kratos/v2 v2.8.4 h1:eIJLE9Qq9WSoKx+Buy2uPyrahtF/lPh+Xf4MTpxhmjs=
 github.com/go-kratos/kratos/v2 v2.8.4/go.mod h1:mq62W2101a5uYyRxe+7IdWubu7gZCGYqSNKwGFiiRcw=
 github.com/go-logfmt/logfmt v0.5.0/go.mod h1:wCYkCAKZfumFQihp8CzCvQ3paCTfi41vtzG1KdI/P7A=
@@ -548,8 +548,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/tetratelabs/wazero v1.9.0 h1:IcZ56OuxrtaEz8UYNRHBrUa9bYeX9oVY93KspZZBf/I=
 github.com/tetratelabs/wazero v1.9.0/go.mod h1:TSbcXCfFP0L2FGkRPxHphadXPjo1T6W+CseNNY7EkjM=
-github.com/tianping526/rocketmq-clients/golang/v5 v5.0.0-20250825035908-5cee0e6361ac h1:GTx5936QBZXS42ySwjc+YClzlpJqekbdCNNK4jOXuoE=
-github.com/tianping526/rocketmq-clients/golang/v5 v5.0.0-20250825035908-5cee0e6361ac/go.mod h1:6ms6P0cT+4x2/uacVO2bJAycdvGIWuD4VY3K8wgAXkc=
+github.com/tianping526/rocketmq-clients/golang/v5 v5.0.0-20250612091445-5c7a9b25d87f h1:FosDWLcC8VdRx9gzg2mJTeef8nvxsB8N2tuF3uY2C9U=
+github.com/tianping526/rocketmq-clients/golang/v5 v5.0.0-20250612091445-5c7a9b25d87f/go.mod h1:6ms6P0cT+4x2/uacVO2bJAycdvGIWuD4VY3K8wgAXkc=
 github.com/tklauser/go-sysconf v0.3.15 h1:VE89k0criAymJ/Os65CSn1IXaol+1wrsFHEB8Ol49K4=
 github.com/tklauser/go-sysconf v0.3.15/go.mod h1:Dmjwr6tYFIseJw7a3dRLJfsHAMXZ3nEnL/aZY+0IuI4=
 github.com/tklauser/numcpus v0.10.0 h1:18njr6LDBk1zuna922MgdjQuJFjrdppsZG60sHGfjso=
