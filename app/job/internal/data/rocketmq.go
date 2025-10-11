@@ -108,8 +108,8 @@ func NewRocketMQConsumer(
 			AccessSecret: "",
 		},
 	},
-		rmqClient.WithAwaitDuration(time.Second*5),
-		rmqClient.WithSubscriptionExpressions(map[string]*rmqClient.FilterExpression{
+		rmqClient.WithSimpleAwaitDuration(time.Second*5),
+		rmqClient.WithSimpleSubscriptionExpressions(map[string]*rmqClient.FilterExpression{
 			topic: rmqClient.SUB_ALL,
 		}),
 	)

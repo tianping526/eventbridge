@@ -10,7 +10,7 @@ import (
 func WithTx(ctx context.Context, client *ent.Client, fn func(tx *ent.Tx) error) (err error) {
 	tx, err := client.Tx(ctx)
 	if err != nil {
-		return
+		return err
 	}
 	defer func() {
 		if v := recover(); v != nil {
@@ -25,8 +25,8 @@ func WithTx(ctx context.Context, client *ent.Client, fn func(tx *ent.Tx) error) 
 		if rer := tx.Rollback(); rer != nil {
 			return rer
 		}
-		return
+		return err
 	}
 	err = tx.Commit()
-	return
+	return err
 }
