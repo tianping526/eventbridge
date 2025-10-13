@@ -103,7 +103,7 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("create default bus error: %v", err))
 		}
 	}
-	time.Sleep(5 * time.Second) // wait for bus creation
+	time.Sleep(10 * time.Second) // wait for bus creation
 
 	code = m.Run()
 }
