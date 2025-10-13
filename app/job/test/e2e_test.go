@@ -114,6 +114,7 @@ func TestPostEventOrderly(t *testing.T) { //nolint:gocyclo
 			},
 		},
 		rmqClient.WithMaxAttempts(3),
+		rmqClient.WithTopics("EBInterBusOrderly", "EBInterDelayBusOrderly"),
 	)
 	if err != nil {
 		t.Errorf("rocketmq producer error: %v", err)
