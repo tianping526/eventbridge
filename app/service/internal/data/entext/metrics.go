@@ -85,7 +85,7 @@ func EntMetricsHook(opts ...EntMetricsHookOption) ent.Hook {
 					}()
 				}
 				val, err = next.Mutate(ctx, m)
-				return
+				return val, err
 			},
 		)
 	}

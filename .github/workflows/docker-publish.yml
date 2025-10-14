@@ -13,14 +13,14 @@ jobs:
       matrix:
         app: [ service, job ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: 'true'
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.25.0
+          go-version-file: 'go.mod'
 
       - name: Generate API
         run: go tool buf generate

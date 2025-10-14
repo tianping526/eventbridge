@@ -109,15 +109,15 @@ func (repo *eventRepo) retryDispatchTargetEvent(
 				"no dispatcher for target(bus name: %s, rule name: %s, target id: %d) to dispatch",
 				evt.BusName, evt.RuleName, evt.TargetId,
 			)
-			return
+			return err
 		}
 		err = fmt.Errorf(
 			"dispatch target(bus name: %s, rule name: %s, target id: %d) err: %s",
 			evt.BusName, evt.RuleName, evt.TargetId, err,
 		)
-		return
+		return err
 	}
-	return
+	return err
 }
 
 func (repo *eventRepo) handleSourceEvent(
@@ -148,18 +148,18 @@ func (repo *eventRepo) handleSourceEvent(
 				"no matcher for rule(%s) in bus(%s) to match event", ruleName, evt.BusName,
 			)
 			err = nil
-			return
+			return err
 		}
 		err = fmt.Errorf("match event err: %s, bus name: %s, rule name: %s", err, evt.BusName, ruleName)
-		return
+		return err
 	}
 	if !ok {
-		return
+		return err
 	}
 
 	if ctx.Err() != nil { // other goroutine failed
 		err = context.Cause(ctx)
-		return
+		return err
 	}
 
 	// transform event
@@ -171,15 +171,15 @@ func (repo *eventRepo) handleSourceEvent(
 				"no transformer for rule(%s) in bus(%s) to transform event", ruleName, evt.BusName,
 			)
 			err = nil
-			return
+			return err
 		}
 		err = fmt.Errorf("transform event err: %s, bus name: %s, rule name: %s", err, evt.BusName, ruleName)
-		return
+		return err
 	}
 
 	if ctx.Err() != nil { // other goroutine failed
 		err = context.Cause(ctx)
-		return
+		return err
 	}
 
 	// dispatch target event
@@ -187,12 +187,12 @@ func (repo *eventRepo) handleSourceEvent(
 		repo.log.WithContext(ctx).Errorf(
 			"no target event for rule(%s) in bus(%s) to dispatch", ruleName, evt.BusName,
 		)
-		return
+		return err
 	}
 	if len(targetEvents) == 1 {
 		for _, targetEvt := range targetEvents {
 			err = repo.dispatchTargetEvent(ctx, exec, targetEvt)
-			return
+			return err
 		}
 	}
 	eg, c := errgroup.WithContext(ctx)
@@ -203,7 +203,7 @@ func (repo *eventRepo) handleSourceEvent(
 		})
 	}
 	err = eg.Wait()
-	return
+	return err
 }
 
 func (repo *eventRepo) dispatchTargetEvent(ctx context.Context, exec rule.Executor, evt *rule.EventExt) (err error) {
@@ -225,7 +225,7 @@ func (repo *eventRepo) dispatchTargetEvent(ctx context.Context, exec rule.Execut
 	// dispatch
 	err = exec.Dispatch(ctx, evt)
 	if err == nil {
-		return
+		return err
 	}
 	if rule.IsDispatcherNotFound(err) {
 		repo.log.WithContext(ctx).Errorf(
@@ -233,7 +233,7 @@ func (repo *eventRepo) dispatchTargetEvent(ctx context.Context, exec rule.Execut
 			evt.BusName, evt.RuleName, evt.TargetId,
 		)
 		err = nil
-		return
+		return err
 	}
 
 	// dispatch failed, send it to retry queue
@@ -256,7 +256,7 @@ func (repo *eventRepo) dispatchTargetEvent(ctx context.Context, exec rule.Execut
 			),
 		)
 		err = fmt.Errorf("send event(%s) to retry queue err: %s", evt.Key(), err)
-		return
+		return err
 	}
 	repo.m.PostEventCount.Add(
 		ctx, 1,
@@ -266,5 +266,5 @@ func (repo *eventRepo) dispatchTargetEvent(ctx context.Context, exec rule.Execut
 			attribute.String(metricPostEventResult, "ok"),
 		),
 	)
-	return
+	return err
 }

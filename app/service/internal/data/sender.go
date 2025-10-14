@@ -184,7 +184,7 @@ func (s *sender) updateBus(b *biz.Bus) error {
 func (s *sender) newMQProducer(topic biz.MQTopic) (MQProducer, error) {
 	switch topic.Type {
 	case v1.MQType_MQ_TYPE_ROCKETMQ:
-		return NewRocketMQProducer(topic.Endpoints)
+		return NewRocketMQProducer(topic.Endpoints, topic.Topic)
 	default:
 		return nil, fmt.Errorf("unsupported mq type: %s", topic.Type)
 	}

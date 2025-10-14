@@ -41,7 +41,7 @@ type rocketMQProducer struct {
 	p rmqClient.Producer
 }
 
-func NewRocketMQProducer(endpoints string) (MQProducer, error) {
+func NewRocketMQProducer(endpoints, topic string) (MQProducer, error) {
 	producer, err := rmqClient.NewProducer(
 		&rmqClient.Config{
 			Endpoint: endpoints,
@@ -51,6 +51,7 @@ func NewRocketMQProducer(endpoints string) (MQProducer, error) {
 			},
 		},
 		rmqClient.WithMaxAttempts(3),
+		rmqClient.WithTopics(topic),
 	)
 	if err != nil {
 		return nil, err
@@ -108,8 +109,8 @@ func NewRocketMQConsumer(
 			AccessSecret: "",
 		},
 	},
-		rmqClient.WithAwaitDuration(time.Second*5),
-		rmqClient.WithSubscriptionExpressions(map[string]*rmqClient.FilterExpression{
+		rmqClient.WithSimpleAwaitDuration(time.Second*5),
+		rmqClient.WithSimpleSubscriptionExpressions(map[string]*rmqClient.FilterExpression{
 			topic: rmqClient.SUB_ALL,
 		}),
 	)
